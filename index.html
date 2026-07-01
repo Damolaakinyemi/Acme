@@ -132,6 +132,26 @@ button.bg-amber-500 *, .bg-amber-500 * { color:#ffffff !important; }
 button.bg-amber-500:hover, .bg-amber-500:hover { background-color:#d97706 !important; }
 button.bg-amber-600, .bg-amber-600 { background-color:#d97706 !important; color:#ffffff !important; }
 
+
+/* Local profile login gate + workflow polish */
+.dim-login-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;background:linear-gradient(135deg,#f1f5f9,#eef2ff,#e0e7ff);}
+.dim-login-card{width:100%;max-width:460px;background:#fff;border:1px solid #e2e8f0;border-radius:22px;box-shadow:0 24px 70px -24px rgba(15,23,42,.24);padding:36px;color:#0f172a;}
+.dim-login-logo{width:62px;height:62px;border-radius:18px;background:linear-gradient(135deg,#4f46e5,#6366f1);display:grid;place-items:center;margin:0 auto 18px;font-size:34px;box-shadow:0 10px 30px -14px rgba(79,70,229,.7);}
+.dim-login-title{text-align:center;font-size:28px;font-weight:800;letter-spacing:-.03em;margin:0;color:#0f172a;}
+.dim-login-sub{text-align:center;font-size:14px;color:#64748b;margin:6px 0 24px;}
+.dim-login-label{display:block;font-size:12px;font-weight:700;color:#334155;margin:0 0 6px;}
+.dim-login-select,.dim-login-input{width:100%;border:2px solid #e2e8f0;border-radius:12px;background:#fff;color:#0f172a!important;padding:11px 13px;font-size:14px;margin-bottom:14px;}
+.dim-login-select:focus,.dim-login-input:focus{outline:none;border-color:#6366f1;box-shadow:0 0 0 3px rgba(99,102,241,.15);}
+.dim-login-btn{width:100%;border:0;border-radius:12px;background:linear-gradient(135deg,#4f46e5,#6366f1);color:#fff!important;padding:13px 16px;font-weight:800;font-size:15px;cursor:pointer;box-shadow:0 8px 22px -10px rgba(79,70,229,.8);}
+.dim-login-btn:hover{transform:translateY(-1px);box-shadow:0 12px 28px -12px rgba(79,70,229,.9);}
+.dim-login-error{display:none;margin:0 0 14px;padding:10px 12px;border-radius:10px;border:1px solid #fecaca;background:#fef2f2;color:#991b1b;font-size:13px;font-weight:600;}
+.dim-login-hint{margin-top:14px;padding:12px;border-radius:12px;background:#f8fafc;border:1px solid #e2e8f0;color:#475569;font-size:12px;line-height:1.45;}
+.dim-code-chip{display:inline-flex;padding:1px 6px;border-radius:6px;background:#eef2ff;color:#3730a3;font-family:ui-monospace,monospace;font-weight:700;margin:2px;}
+.activity-dot{width:8px;height:8px;border-radius:999px;background:#6366f1;display:inline-block;}
+.dark .dim-login-wrap{background:linear-gradient(135deg,#020617,#0f172a,#111827);}
+.dark .dim-login-card{background:#1e293b;border-color:#334155;color:#f8fafc;}
+.dark .dim-login-title{color:#f8fafc}.dark .dim-login-sub,.dark .dim-login-label{color:#cbd5e1}
+.dark .dim-login-select,.dark .dim-login-input{background:#334155!important;color:#f8fafc!important;border-color:#64748b;}
 </style>
 </head>
 <body class="bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-100">
@@ -228,6 +248,25 @@ function normalizeRow(rowObj, fields){
 var DEFAULT_EMAIL = {subject:"Dead Inventory Return Request - {{vendor}} - PO {{po}}", body:"Hi {{vendor}},\n\nPlease find below the dead inventory items we'd like to return. Each SKU includes its associated PO number for your reference.\n\nLet me know if you need anything else to process these returns.\n\nThanks,\n{{user}}\nAcme Paper and Supply Co."};
 var DEFAULT_BRANDING = {company:"Acme Paper and Supply Co.",primary:"#4f46e5",accent:"#ef4444"};
 var DEFAULT_PROFILE = {name:"Damola Akinyemi",email:"dakinyemi@acmepaper.com",role:"Supply Chain Analyst"};
+var DEFAULT_USERS = [
+  {id:"admin-damola",name:"Damola Akinyemi",email:"dakinyemi@acmepaper.com",role:"admin",buyer_name:"",title:"Supply Chain Analyst",access_code:"0000",active:true},
+  {id:"manager-keith",name:"Keith Attman",email:"",role:"manager",buyer_name:"",title:"Manager",access_code:"1111",active:true},
+  {id:"buyer-karen",name:"Karen Groves",email:"",role:"buyer",buyer_name:"Karen Groves",title:"Buyer",access_code:"2222",active:true},
+  {id:"buyer-angela",name:"Angela Burke",email:"",role:"buyer",buyer_name:"Angela Burke",title:"Buyer",access_code:"3333",active:true},
+  {id:"buyer-noel",name:"Noel Marucut",email:"",role:"buyer",buyer_name:"Noel Marucut",title:"Buyer",access_code:"4444",active:true},
+  {id:"buyer-suyeon",name:"Suyeon Nam",email:"",role:"buyer",buyer_name:"Suyeon Nam",title:"Buyer",access_code:"5555",active:true},
+  {id:"buyer-eleni",name:"Eleni Davis",email:"",role:"buyer",buyer_name:"Eleni Davis",title:"Buyer",access_code:"6666",active:true},
+  {id:"buyer-trevor",name:"Trevor Andrews",email:"",role:"buyer",buyer_name:"Trevor Andrews",title:"Buyer",access_code:"7777",active:true},
+  {id:"buyer-matt",name:"Matt Stone",email:"",role:"buyer",buyer_name:"Matt Stone",title:"Buyer",access_code:"8888",active:true},
+  {id:"buyer-matthew",name:"Matthew Miller",email:"",role:"buyer",buyer_name:"Matthew Miller",title:"Buyer",access_code:"9999",active:true}
+];
+function roleLabel(role){return role==='admin'?'Admin':role==='manager'?'Manager':'Buyer';}
+function canManageUsers(user){return user && user.role==='admin';}
+function canApprove(user){return user && (user.role==='admin' || user.role==='manager');}
+function buyerMatches(rowBuyer,userBuyer){return normName(rowBuyer).toLowerCase()===normName(userBuyer).toLowerCase();}
+function ensureAccessCodes(list){return (list||[]).map(function(u,i){return Object.assign({access_code:String(i).repeat(4).slice(0,4)||"1234",active:true},u,{access_code:u.access_code||String(i).repeat(4).slice(0,4)||"1234"});});}
+function actionLabel(a){return {login:'Logged In',upload:'Uploaded Inventory',po_update:'Updated PO',bulk_assign:'Bulk Assigned PO',submit_review:'Submitted for Review',approve_email:'Approved to Email',send_back:'Sent Back',sent_vendor:'Marked Sent',comment:'Added Comment',export:'Exported File',profile:'Profile Change'}[a]||a;}
+function nowStamp(){return new Date().toISOString();}
 var LS = {get:function(k,fb){try{var v=localStorage.getItem(k);return v?JSON.parse(v):fb;}catch(e){return fb;}},set:function(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}};
 
 var CLOUD_INVENTORY_COLS = ["id","internal_id","sku","description","dnr_activity_code","vendor_item_number","vendor_name","last_date_sold","total_inventory_on_hand","last_date_purchased","buyer_name","preferred_vendor_price","extended_cost","product_category","po_number","po_1","po_1_qty","po_2","po_2_qty","po_3","po_3_qty","po_status","po_date_assigned","notes","created_at","updated_at"];
@@ -384,10 +423,31 @@ function AppProvider(props){
   var tS=useState([]); var toasts=tS[0], setToasts=tS[1];
   var sS=useState(""); var searchGlobal=sS[0], setSearchGlobal=sS[1];
   var clS=useState(hasSupabaseConfig()?"Cloud ready":"Local mode"); var cloudStatus=clS[0], setCloudStatus=clS[1];
-  function setInventory(v){var clean=(v||[]).map(normalizePoFields); setInventoryState(clean); LS.set("dim_v3_inventory",clean);}
+  var userS=useState(function(){return ensureAccessCodes(LS.get("dim_v3_users",DEFAULT_USERS));}); var users=userS[0], setUsersState=userS[1];
+  var cuS=useState(function(){var saved=LS.get("dim_v3_current_user",""); var list=ensureAccessCodes(LS.get("dim_v3_users",DEFAULT_USERS)); return saved || (list[0]&&list[0].id) || "admin-damola";}); var currentUserId=cuS[0], setCurrentUserIdState=cuS[1];
+  var activityS=useState(function(){return LS.get("dim_v3_activity",[]);}); var activity=activityS[0], setActivityState=activityS[1];
+  var currentUser=users.find(function(u){return u.id===currentUserId;}) || users[0] || DEFAULT_USERS[0];
+  var effectiveProfile={name:currentUser.name,email:currentUser.email||DEFAULT_PROFILE.email,role:roleLabel(currentUser.role),title:currentUser.title||roleLabel(currentUser.role),buyer_name:currentUser.buyer_name||""};
+  var visibleInventory=inventory.filter(function(r){return !currentUser || currentUser.role==='admin' || currentUser.role==='manager' || buyerMatches(r.buyer_name,currentUser.buyer_name);});
+  function setInventory(v){
+    var clean=(v||[]).map(normalizePoFields);
+    if(currentUser && currentUser.role==='buyer'){
+      var byId={}; clean.forEach(function(r){byId[r.id]=r;});
+      var merged=inventory.map(function(r){return byId[r.id] ? byId[r.id] : r;});
+      clean.forEach(function(r){if(!inventory.some(function(x){return x.id===r.id;})) merged.push(r);});
+      setInventoryState(merged); LS.set("dim_v3_inventory",merged);
+    } else { setInventoryState(clean); LS.set("dim_v3_inventory",clean); }
+  }
   function setVendors(v){setVendorsState(v); LS.set("dim_v3_vendors",v); if(hasSupabaseConfig()) dbUpsertVendors(v);}
   function setUploads(v){setUploadsState(v); LS.set("dim_v3_uploads",v);}
   function setProfile(v){setProfileState(v); LS.set("dim_v3_profile",v);}
+  function setUsers(v){var clean=ensureAccessCodes(v);setUsersState(clean); LS.set("dim_v3_users",clean);}
+  function setCurrentUserId(v){setCurrentUserIdState(v); LS.set("dim_v3_current_user",v);}
+  function setActivity(v){setActivityState(v); LS.set("dim_v3_activity",v);}
+  function addActivity(action, entity, detail){
+    var rec={id:uid(),at:nowStamp(),user:currentUser.name,role:roleLabel(currentUser.role),buyer:currentUser.buyer_name||'',action:action,entity:entity||'',detail:detail||{}};
+    setActivityState(function(prev){var next=[rec].concat(prev||[]).slice(0,1000); LS.set("dim_v3_activity",next); return next;});
+  }
   function setBranding(v){setBrandingState(v); LS.set("dim_v3_branding",v);}
   function setEmailTemplate(v){setEmailTplState(v); LS.set("dim_v3_email_tpl",v);}
   useEffect(function(){
@@ -418,7 +478,7 @@ function AppProvider(props){
     setVendors(merged);
     return merged;
   }
-  var value={inventory:inventory,setInventory:setInventory,vendors:vendors,setVendors:setVendors,uploads:uploads,setUploads:setUploads,profile:profile,setProfile:setProfile,branding:branding,setBranding:setBranding,emailTemplate:emailTemplate,setEmailTemplate:setEmailTemplate,theme:theme,toggleTheme:toggleTheme,pushToast:pushToast,toasts:toasts,dismissToast:dismissToast,searchGlobal:searchGlobal,setSearchGlobal:setSearchGlobal,syncVendorsFromInventory:syncVendorsFromInventory,cloudStatus:cloudStatus,setCloudStatus:setCloudStatus};
+  var value={inventory:visibleInventory,allInventory:inventory,setInventory:setInventory,vendors:vendors,setVendors:setVendors,uploads:uploads,setUploads:setUploads,profile:effectiveProfile,setProfile:setProfile,users:users,setUsers:setUsers,currentUser:currentUser,currentUserId:currentUserId,setCurrentUserId:setCurrentUserId,activity:activity,setActivity:setActivity,addActivity:addActivity,branding:branding,setBranding:setBranding,emailTemplate:emailTemplate,setEmailTemplate:setEmailTemplate,theme:theme,toggleTheme:toggleTheme,pushToast:pushToast,toasts:toasts,dismissToast:dismissToast,searchGlobal:searchGlobal,setSearchGlobal:setSearchGlobal,syncVendorsFromInventory:syncVendorsFromInventory,cloudStatus:cloudStatus,setCloudStatus:setCloudStatus};
   return h(AppCtx.Provider,{value:value},props.children);
 }
 
@@ -452,9 +512,11 @@ function Pill(props){
     partial_po:'bg-orange-100 text-orange-800 dark:bg-orange-900/40 dark:text-orange-300',
     po_assigned:'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300',
     ready_to_email:'bg-sky-100 text-sky-700 dark:bg-sky-900/40 dark:text-sky-300',
+    ready_for_review:'bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300',
+    approved_to_email:'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300',
     sent_to_vendor:'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300'
   };
-  var label={needs_po:'Needs PO',partial_po:'Partial PO',po_assigned:'PO Assigned',ready_to_email:'Ready to Email',sent_to_vendor:'Sent to Vendor'};
+  var label={needs_po:'Needs PO',partial_po:'Partial PO',po_assigned:'PO Assigned',ready_to_email:'Ready to Email',ready_for_review:'Ready for Review',approved_to_email:'Approved to Email',sent_to_vendor:'Sent to Vendor'};
   return h('span',{className:"px-2 py-0.5 rounded-full text-xs font-medium "+(map[props.status]||'bg-slate-200 text-slate-700')},label[props.status]||props.status);
 }
 
@@ -546,10 +608,18 @@ var NAV = [
   {path:"/po",label:"PO Assignment",icon:"🧾"},
   {path:"/export",label:"Export & Email",icon:"📧"},
   {path:"/reports",label:"Reports",icon:"📊"},
+  {path:"/approvals",label:"Approvals",icon:"✅"},
+  {path:"/activity",label:"Activity",icon:"🕒"},
+  {path:"/profiles",label:"Profiles",icon:"👤"},
   {path:"/settings",label:"Settings",icon:"⚙️"}
 ];
 
 function Sidebar(props){
+  var ctx=useApp();
+  var allowedNav=NAV.filter(function(item){
+    if(ctx.currentUser && ctx.currentUser.role==='buyer' && (item.path==='/upload' || item.path==='/settings' || item.path==='/approvals' || item.path==='/profiles')) return false;
+    return true;
+  });
   var brand=h('div',{className:"px-5 py-5 border-b border-white/10 flex items-center gap-3"},
     h('div',{className:"w-10 h-10 rounded-xl bg-brand-600 grid place-items-center text-xl shadow-lg"},'📦'),
     h('div',null,
@@ -558,7 +628,7 @@ function Sidebar(props){
     )
   );
   var nav=h('nav',{className:"flex-1 overflow-y-auto py-3"},
-    NAV.map(function(item){
+    allowedNav.map(function(item){
       var active=props.currentPath.indexOf(item.path)===0;
       return h('a',{key:item.path,href:"#"+item.path,onClick:function(){if(props.onClose)props.onClose();},className:"flex items-center gap-3 px-5 py-2.5 text-sm transition border-l-4 "+(active?"border-brand-500 bg-brand-600/20 text-white font-semibold":"border-transparent hover:bg-white/5 text-white/80")},
         h('span',{className:"text-base w-5 text-center"},item.icon),item.label
@@ -587,17 +657,70 @@ function Topbar(props){
       h('button',{onClick:function(){go("/po");},title:"SKUs needing PO",className:"p-2 rounded-md hover:bg-slate-100 dark:hover:bg-slate-700 text-lg"},'🔔'),
       needsPo>0?h('span',{className:"absolute -top-0.5 -right-0.5 bg-accent-500 text-white text-[10px] rounded-full px-1.5 py-0.5 font-semibold"},needsPo):null
     ),
-    h('div',{className:"hidden sm:flex items-center gap-2 pl-3 border-l border-slate-200 dark:border-slate-700"},
-      h('div',{className:"w-8 h-8 rounded-full bg-brand-600 text-white grid place-items-center text-xs font-bold shadow-sm"},'DA'),
+    h('div',{className:"hidden md:flex items-center gap-2 pl-3 border-l border-slate-200 dark:border-slate-700"},
+      canApprove(ctx.currentUser)?h('select',{value:ctx.currentUserId,onChange:function(e){ctx.setCurrentUserId(e.target.value); ctx.addActivity&&ctx.addActivity('profile','switch',{to:e.target.value}); ctx.pushToast({type:'info',message:'Switched profile'});},title:'Admin/Manager profile switcher',className:"px-2 py-1 rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white text-xs"},
+        ctx.users.filter(function(u){return u.active!==false;}).map(function(u){return h('option',{key:u.id,value:u.id},u.name+' — '+roleLabel(u.role));})
+      ):null,
+      h('div',{className:"w-8 h-8 rounded-full bg-brand-600 text-white grid place-items-center text-xs font-bold shadow-sm"},(ctx.profile.name||'U').split(' ').map(function(x){return x[0];}).join('').slice(0,2).toUpperCase()),
       h('div',{className:"leading-tight"},
         h('div',{className:"text-sm font-semibold"},ctx.profile.name),
-        h('div',{className:"text-[11px] text-slate-500 dark:text-slate-400"},ctx.profile.role)
-      )
+        h('div',{className:"text-[11px] text-slate-500 dark:text-slate-400"},ctx.profile.role+(ctx.profile.buyer_name?' • '+ctx.profile.buyer_name:''))
+      ),
+      h('button',{onClick:function(){LS.set('dim_v3_logged_in',false); window.location.reload();},title:'Log out',className:"px-2 py-1 rounded-md border border-slate-300 dark:border-slate-600 text-xs font-semibold hover:bg-slate-100 dark:hover:bg-slate-700"},'Log out')
     )
   );
 }
 
+
+
+function LoginGate(props){
+  var stored=ensureAccessCodes(LS.get("dim_v3_users",DEFAULT_USERS));
+  if(!LS.get("dim_v3_users",null)) LS.set("dim_v3_users",stored);
+  var us=useState(stored.filter(function(u){return u.active!==false;})); var users=us[0];
+  var identS=useState(""); var identity=identS[0],setIdentity=identS[1];
+  var codeS=useState(""); var code=codeS[0],setCode=codeS[1];
+  var errS=useState(""); var err=errS[0],setErr=errS[1];
+  function findUser(){
+    var q=normName(identity).toLowerCase();
+    if(!q) return null;
+    return users.find(function(u){
+      return normName(u.name).toLowerCase()===q || String(u.email||'').toLowerCase()===q;
+    });
+  }
+  function submit(e){
+    e.preventDefault();
+    var u=findUser();
+    if(!u){setErr("No matching profile found. Enter your full profile name or email exactly as your admin created it.");return;}
+    if(String(u.access_code||"")!==String(code||"")){setErr("Incorrect access code for this profile.");return;}
+    LS.set("dim_v3_current_user",u.id);
+    LS.set("dim_v3_logged_in",true);
+    var acts=LS.get("dim_v3_activity",[]);
+    acts=[{id:uid(),at:nowStamp(),user:u.name,role:roleLabel(u.role),buyer:u.buyer_name||'',action:'login',entity:'app',detail:{login:'profile-specific'}}].concat(acts||[]).slice(0,1000);
+    LS.set("dim_v3_activity",acts);
+    props.onLogin(true);
+  }
+  return h('div',{className:'dim-login-wrap'},
+    h('form',{className:'dim-login-card',onSubmit:submit},
+      h('div',{className:'dim-login-logo'},'📦'),
+      h('h1',{className:'dim-login-title'},'Acme Paper'),
+      h('p',{className:'dim-login-sub'},'Dead Inventory Manager — Secure Profile Login'),
+      h('div',{className:'dim-login-error',style:{display:err?'block':'none'}},err),
+      h('label',{className:'dim-login-label'},'Profile name or email'),
+      h('input',{className:'dim-login-input',type:'text',placeholder:'Example: Karen Groves',value:identity,onChange:function(e){setIdentity(e.target.value);setErr("");},autoFocus:true}),
+      h('label',{className:'dim-login-label'},'Access code'),
+      h('input',{className:'dim-login-input',type:'password',inputMode:'numeric',placeholder:'Enter your private code',value:code,onChange:function(e){setCode(e.target.value);setErr("");}}),
+      h('button',{className:'dim-login-btn',type:'submit'},'Enter My Profile →'),
+      h('div',{className:'dim-login-hint'},
+        h('strong',null,'Profile-specific access only'),
+        h('div',{style:{marginTop:6}},'Each buyer must enter their own exact profile name or email plus their own access code. Buyers cannot switch into other profiles after login.'),
+        h('div',{style:{marginTop:8}},'Initial admin login: ',h('span',{className:'dim-code-chip'},'Damola Akinyemi / 0000'))
+      )
+    )
+  );
+}
 function App(){
+  var li=useState(function(){return LS.get("dim_v3_logged_in",false);}); var loggedIn=li[0],setLoggedIn=li[1];
+  if(!loggedIn) return h(LoginGate,{onLogin:setLoggedIn});
   var hash=useHash();
   var path=hash.replace(/^#/,"")||"/dashboard";
   var pathBase = path.split('?')[0];
@@ -633,6 +756,9 @@ function Router(props){
   if(base==="/po") return h(POAssignmentPage,{query:query});
   if(base==="/export") return h(ExportPage,{query:query});
   if(base==="/reports") return h(ReportsPage,null);
+  if(base==="/approvals") return h(ApprovalQueuePage,null);
+  if(base==="/activity") return h(ActivityPage,null);
+  if(base==="/profiles") return h(UserProfilesPage,null);
   if(base==="/settings") return h(SettingsPage,null);
   return h(DashboardPage,null);
 }
@@ -675,7 +801,7 @@ function DashboardPage(){
     h('div',{className:"flex flex-wrap items-center justify-between gap-3"},
       h('div',null,
         h('h1',{className:"text-2xl font-bold text-slate-900 dark:text-white"},'Dashboard'),
-        h('p',{className:"text-sm text-slate-500 dark:text-slate-400"},'Snapshot of dead inventory health across vendors and buyers.')
+        h('p',{className:"text-sm text-slate-500 dark:text-slate-400"},ctx.currentUser&&ctx.currentUser.role==='buyer'?'Welcome '+ctx.profile.name+'. This dashboard only shows SKUs assigned to '+ctx.profile.buyer_name+'.':'Snapshot of dead inventory health across vendors and buyers.')
       ),
       h('div',{className:"flex gap-2 flex-wrap"},
         h(Btn,{variant:"outline",onClick:function(){go("/upload");}},'📂 Upload File'),
@@ -733,6 +859,7 @@ function DashboardPage(){
 
 function UploadPage(){
   var ctx=useApp();
+  if(ctx.currentUser && ctx.currentUser.role==='buyer'){return h('div',{className:"space-y-4"},h(WarningBanner,{tone:"amber",icon:"🔒",title:"Upload is admin/manager only",desc:"Buyer profiles can work assigned SKUs, but cannot replace the master inventory file."}),h(Btn,{variant:"outline",onClick:function(){go("/dashboard");}},"Back to Dashboard"));}
   var pv=useState(null); var preview=pv[0],setPreview=pv[1];
   var fn=useState(""); var filename=fn[0],setFilename=fn[1];
   var cf=useState(null); var confirmed=cf[0],setConfirmed=cf[1];
@@ -839,6 +966,7 @@ function UploadPage(){
     var mergedVendors = ctx.syncVendorsFromInventory(newInv);
     var rec={id:uid(),filename:filename,uploaded_at:new Date().toISOString(),records_count:preview.rows.length,uploaded_by:ctx.profile.name,format:preview.format,action:action==='replace'?'Replace':'Append'};
     ctx.setUploads(ctx.uploads.concat([rec]));
+    ctx.addActivity&&ctx.addActivity('upload','inventory',{filename:filename,count:preview.rows.length,action:action});
     if(hasSupabaseConfig()){
       ctx.setCloudStatus && ctx.setCloudStatus("Saving to cloud…");
       try{
@@ -1259,7 +1387,7 @@ function POAssignmentPage(props){
       return u;
     });
     ctx.setInventory(next);
-    if(updatedRow) dbUpsertInventoryRows([updatedRow]);
+    if(updatedRow){ dbUpsertInventoryRows([updatedRow]); ctx.addActivity&&ctx.addActivity('po_update','sku',{sku:updatedRow.sku||updatedRow.internal_id,vendor:updatedRow.vendor_name,buyer:updatedRow.buyer_name,po:poSummaryDisplay(updatedRow),status:updatedRow.po_status}); }
   }
   function bulkAssign(){
     var po=prompt("Enter PO number to assign to "+selected.size+" SKU(s):");
@@ -1276,6 +1404,7 @@ function POAssignmentPage(props){
     });
     ctx.setInventory(next);
     dbUpsertInventoryRows(changed);
+    ctx.addActivity&&ctx.addActivity('bulk_assign','po',{po:po,count:selected.size});
     ctx.pushToast({type:'success',message:'Assigned PO '+po+' to '+selected.size+' SKUs'});
     setSelected(new Set());
   }
@@ -1285,13 +1414,14 @@ function POAssignmentPage(props){
     var next = ctx.inventory.map(function(r){
       if(!selected.has(r.id)) return r;
       if(poNeedsWork(r)){ withoutPo++; return r; }
-      var u=Object.assign({},r,{po_status:'ready_to_email',updated_at:new Date().toISOString()});
+      var targetStatus=canApprove(ctx.currentUser)?'approved_to_email':'ready_for_review';
+      var u=Object.assign({},r,{po_status:targetStatus,updated_at:new Date().toISOString()});
       changed.push(u); return u;
     });
     ctx.setInventory(next);
     dbUpsertInventoryRows(changed);
     if(withoutPo>0) ctx.pushToast({type:'warning',message:withoutPo+' selected SKU(s) were missing PO information or had quantity mismatch and were skipped'});
-    else ctx.pushToast({type:'success',message:'Marked '+selected.size+' SKUs as Ready to Email'});
+    else {ctx.addActivity&&ctx.addActivity(canApprove(ctx.currentUser)?'approve_email':'submit_review','skus',{count:selected.size}); ctx.pushToast({type:'success',message:canApprove(ctx.currentUser)?'Approved '+selected.size+' SKU(s) to email':'Submitted '+selected.size+' SKU(s) for review'});}
     setSelected(new Set());
   }
   function bulkSend(){
@@ -1303,6 +1433,7 @@ function POAssignmentPage(props){
     });
     ctx.setInventory(next);
     dbUpsertInventoryRows(changed);
+    ctx.addActivity&&ctx.addActivity('sent_vendor','skus',{count:selected.size});
     ctx.pushToast({type:'success',message:'Marked '+selected.size+' SKUs as Sent to Vendor'});
     setSelected(new Set());
   }
@@ -1317,6 +1448,8 @@ function POAssignmentPage(props){
            s==='partial_po'?'bg-orange-50/70 dark:bg-orange-950/20':
            s==='po_assigned'?'bg-amber-50/60 dark:bg-amber-950/20':
            s==='ready_to_email'?'bg-sky-50/60 dark:bg-sky-950/20':
+           s==='ready_for_review'?'bg-purple-50/60 dark:bg-purple-950/20':
+           s==='approved_to_email'?'bg-emerald-50/60 dark:bg-emerald-950/20':
            s==='sent_to_vendor'?'bg-emerald-50/60 dark:bg-emerald-950/20':'';
   }
   if(ctx.inventory.length===0){
@@ -1368,7 +1501,7 @@ function POAssignmentPage(props){
       h('span',{className:"text-sm font-medium"},selected.size+' selected'),
       h('div',{className:"flex gap-2 flex-wrap"},
         h(Btn,{variant:"red",onClick:bulkAssign},'Assign PO to selected'),
-        h(Btn,{variant:"primary",onClick:bulkReady},'Mark Ready to Email'),
+        h(Btn,{variant:"primary",onClick:bulkReady},canApprove(ctx.currentUser)?'Approve to Email':'Submit for Review'),
         h(Btn,{variant:"green",onClick:bulkSend},'Mark Sent to Vendor'),
         h(Btn,{variant:"outline",className:"!bg-white !text-slate-900 !border-white hover:!bg-slate-100 font-semibold",onClick:function(){setSelected(new Set());}},'Clear')
       )
@@ -1452,7 +1585,8 @@ function ExportPage(props){
   var needsPoRows = rows.filter(poNeedsWork);
   var hasNeedsPo = needsPoRows.length>0;
   var hasEmail = ven && ven.contact_email && ven.contact_email.trim();
-  var canExport = vendor && rows.length>0 && !hasNeedsPo;
+  var approvalBlocked = rows.some(function(r){return r.po_status!=='approved_to_email' && r.po_status!=='sent_to_vendor' && r.po_status!=='ready_to_email';});
+  var canExport = vendor && rows.length>0 && !hasNeedsPo && !approvalBlocked;
   function buildTable(){
     var head=["SKU","Description","PO 1","Qty 1","PO 2","Qty 2","PO 3","Qty 3","Total Qty","Extended Cost"];
     var data=rows.map(function(r){return [r.sku||r.internal_id,r.description,r.po_1||"",r.po_1_qty||0,r.po_2||"",r.po_2_qty||0,r.po_3||"",r.po_3_qty||0,r.total_inventory_on_hand,fmtUSD(r.extended_cost)];});
@@ -1545,7 +1679,8 @@ function ExportPage(props){
     ),
     vendor?h(Fragment,null,
       hasNeedsPo?h(WarningBanner,{tone:"red",icon:'\u26a0\ufe0f',title:"This vendor has SKUs without PO numbers.",desc:"Add PO information before emailing/exporting to the vendor. "+needsPoRows.length+" of "+rows.length+" SKU(s) still need a PO. Vendor-ready exports are disabled.",actions:h(Btn,{variant:"red",onClick:function(){go("/po?vendor="+encodeURIComponent(vendor)+"&status=needs_po");}},'\U0001F9FE Go assign missing POs')}):null,
-      !hasNeedsPo && !hasEmail?h(WarningBanner,{tone:"amber",icon:'\u2709\ufe0f',title:"Vendor email required",desc:"No contact email saved for "+vendor+". You can still download CSV/Excel/PDF, but \"Open in Email\" is disabled.",actions:h(Btn,{variant:"amber",onClick:function(){go("/settings");}},'Edit vendor contacts')}):null,
+      approvalBlocked?h(WarningBanner,{tone:"amber",icon:'✅',title:"Manager approval required",desc:"Selected vendor still has SKU(s) not approved to email. Submit for review, then have a Manager/Admin approve them in the Approvals page.",actions:h(Btn,{variant:"amber",onClick:function(){go("/approvals");}},'Open Approvals')}):null,
+      !hasNeedsPo && !approvalBlocked && !hasEmail?h(WarningBanner,{tone:"amber",icon:'\u2709\ufe0f',title:"Vendor email required",desc:"No contact email saved for "+vendor+". You can still download CSV/Excel/PDF, but \"Open in Email\" is disabled.",actions:h(Btn,{variant:"amber",onClick:function(){go("/settings");}},'Edit vendor contacts')}):null,
       h(Card,{title:"Return Request: "+vendor,actions:h(Fragment,null,
         h(Btn,{onClick:downloadCSV,variant:"outline",disabled:!canExport},'\U0001F4C4 CSV'),
         h(Btn,{onClick:downloadXLSX,variant:"outline",disabled:!canExport},'\U0001F4CA Excel'),
@@ -1729,8 +1864,203 @@ function ReportsPage(){
   );
 }
 
+
+
+function ActivityPage(){
+  var ctx=useApp();
+  var fs=useState(''); var filter=fs[0],setFilter=fs[1];
+  var rows=(ctx.activity||[]).filter(function(a){
+    var q=filter.toLowerCase();
+    return !q || [a.user,a.role,a.action,a.entity,JSON.stringify(a.detail||{})].join(' ').toLowerCase().indexOf(q)>=0;
+  });
+  return h('div',{className:"space-y-4"},
+    h('div',{className:"flex flex-wrap items-center justify-between gap-2"},
+      h('div',null,
+        h('h1',{className:"text-2xl font-bold"},'Activity Log'),
+        h('p',{className:"text-sm text-slate-500 dark:text-slate-400"},'Audit trail of uploads, PO changes, approvals, comments, exports, and logins.')
+      ),
+      h('input',{value:filter,onChange:function(e){setFilter(e.target.value);},placeholder:"Search activity...",className:"px-3 py-1.5 rounded-md border-2 border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm"})
+    ),
+    h(Card,null,
+      rows.length===0 ? h(EmptyState,{title:"No activity yet",desc:"Actions will appear here as users work in the app."}) :
+      h('div',{className:"overflow-x-auto"},
+        h('table',{className:"w-full text-sm"},
+          h('thead',{className:"bg-slate-100 dark:bg-slate-700 text-xs uppercase"},
+            h('tr',null,
+              h('th',{className:"px-3 py-2 text-left"},'When'),
+              h('th',{className:"px-3 py-2 text-left"},'User'),
+              h('th',{className:"px-3 py-2 text-left"},'Action'),
+              h('th',{className:"px-3 py-2 text-left"},'Details')
+            )
+          ),
+          h('tbody',null,
+            rows.map(function(a){
+              return h('tr',{key:a.id,className:"border-t border-slate-100 dark:border-slate-700/40"},
+                h('td',{className:"px-3 py-2 text-xs whitespace-nowrap"},new Date(a.at).toLocaleString()),
+                h('td',{className:"px-3 py-2"},
+                  h('div',{className:"font-semibold"},a.user),
+                  h('div',{className:"text-xs text-slate-500"},a.role+(a.buyer?' • '+a.buyer:''))
+                ),
+                h('td',{className:"px-3 py-2"},h('span',{className:"inline-flex items-center gap-2"},h('span',{className:"activity-dot"}),actionLabel(a.action))),
+                h('td',{className:"px-3 py-2 text-xs font-mono text-slate-600 dark:text-slate-300"},JSON.stringify(a.detail||{}))
+              );
+            })
+          )
+        )
+      )
+    )
+  );
+}
+
+function ApprovalQueuePage(){
+  var ctx=useApp();
+  if(!canApprove(ctx.currentUser)){
+    return h('div',{className:"space-y-4"},
+      h(WarningBanner,{tone:"amber",icon:'🔒',title:"Approvals are manager/admin only",desc:"Buyer profiles can submit SKUs for review, but cannot approve them."}),
+      h(Btn,{variant:"outline",onClick:function(){go('/dashboard');}},'Back to Dashboard')
+    );
+  }
+  var list=(ctx.allInventory||ctx.inventory).filter(function(r){return r.po_status==='ready_for_review';});
+  function updateStatus(ids,status,note){
+    var next=(ctx.allInventory||ctx.inventory).map(function(r){
+      if(ids.indexOf(r.id)<0) return r;
+      var comment=(r.notes||'')+(note?'\n['+new Date().toLocaleString()+'] '+ctx.profile.name+': '+note:'');
+      return Object.assign({},r,{po_status:status,notes:comment,updated_at:new Date().toISOString()});
+    });
+    ctx.setInventory(next);
+    ctx.addActivity&&ctx.addActivity(status==='approved_to_email'?'approve_email':'send_back','approval',{count:ids.length,note:note||''});
+    ctx.pushToast({type:'success',message:status==='approved_to_email'?'Approved '+ids.length+' SKU(s)':'Sent back '+ids.length+' SKU(s)'});
+  }
+  function approveOne(r){updateStatus([r.id],'approved_to_email','Approved to email');}
+  function sendBackOne(r){var note=prompt('Reason to send back?','PO quantity or detail needs review'); if(note!==null) updateStatus([r.id],derivePoStatus(r),note);}
+  function approveAll(){if(list.length&&confirm('Approve all '+list.length+' SKU(s) to email?')) updateStatus(list.map(function(r){return r.id;}),'approved_to_email','Bulk approved');}
+  return h('div',{className:"space-y-4"},
+    h('div',{className:"flex flex-wrap items-center justify-between gap-2"},
+      h('div',null,
+        h('h1',{className:"text-2xl font-bold"},'Approval Queue'),
+        h('p',{className:"text-sm text-slate-500 dark:text-slate-400"},list.length+' SKU(s) waiting for Manager/Admin approval.')
+      ),
+      list.length?h(Btn,{variant:"green",onClick:approveAll},'Approve All'):null
+    ),
+    list.length===0 ? h(Card,null,h(EmptyState,{title:"Nothing waiting for approval",desc:"Buyer-submitted SKUs will appear here after PO information is entered and submitted for review."})) :
+    h(Card,null,
+      h('div',{className:"overflow-x-auto"},
+        h('table',{className:"w-full text-sm"},
+          h('thead',{className:"bg-slate-100 dark:bg-slate-700 text-xs uppercase"},
+            h('tr',null,
+              h('th',{className:"px-3 py-2 text-left"},'SKU'),
+              h('th',{className:"px-3 py-2 text-left"},'Description'),
+              h('th',{className:"px-3 py-2 text-left"},'Buyer'),
+              h('th',{className:"px-3 py-2 text-left"},'Vendor'),
+              h('th',{className:"px-3 py-2 text-left"},'PO'),
+              h('th',{className:"px-3 py-2 text-right"},'Actions')
+            )
+          ),
+          h('tbody',null,
+            list.map(function(r){
+              return h('tr',{key:r.id,className:"border-t border-slate-100 dark:border-slate-700/40"},
+                h('td',{className:"px-3 py-2 font-mono text-xs"},r.sku||r.internal_id),
+                h('td',{className:"px-3 py-2"},r.description),
+                h('td',{className:"px-3 py-2"},r.buyer_name),
+                h('td',{className:"px-3 py-2"},r.vendor_name),
+                h('td',{className:"px-3 py-2 text-xs font-mono"},poSummaryDisplay(r)),
+                h('td',{className:"px-3 py-2 text-right"},
+                  h('div',{className:"flex gap-2 justify-end"},
+                    h(Btn,{variant:"green",onClick:function(){approveOne(r);}},'Approve'),
+                    h(Btn,{variant:"outline",onClick:function(){sendBackOne(r);}},'Send Back')
+                  )
+                )
+              );
+            })
+          )
+        )
+      )
+    )
+  );
+}
+
+function UserProfilesPage(){
+  var ctx=useApp();
+  var isAdmin=canManageUsers(ctx.currentUser);
+  if(!isAdmin){
+    return h('div',{className:"space-y-5"},
+      h('div',null,h('h1',{className:"text-2xl font-bold"},'My Profile'),h('p',{className:"text-sm text-slate-500 dark:text-slate-400"},'This account is locked to your own profile. Contact an Admin for changes.')),
+      h(Card,{title:"Profile Details"},
+        h('div',{className:"grid grid-cols-1 md:grid-cols-2 gap-3 text-sm"},
+          h('div',null,h('div',{className:"text-xs font-semibold text-slate-500 uppercase"},'Name'),h('div',{className:"font-semibold"},ctx.profile.name)),
+          h('div',null,h('div',{className:"text-xs font-semibold text-slate-500 uppercase"},'Role'),h('div',{className:"font-semibold"},ctx.profile.role)),
+          h('div',null,h('div',{className:"text-xs font-semibold text-slate-500 uppercase"},'Assigned Buyer'),h('div',{className:"font-semibold"},ctx.profile.buyer_name||'All buyers')),
+          h('div',null,h('div',{className:"text-xs font-semibold text-slate-500 uppercase"},'Visible SKUs'),h('div',{className:"font-semibold"},ctx.inventory.length+' SKU(s)'))
+        )
+      )
+    );
+  }
+  var buyers=Array.from(new Set((ctx.allInventory||ctx.inventory).map(function(r){return r.buyer_name;}).filter(Boolean))).sort();
+  var blank={id:"",name:"",email:"",role:"buyer",buyer_name:"",title:"Buyer",access_code:"1234",active:true};
+  var fs=useState(blank); var form=fs[0],setForm=fs[1];
+  function saveUser(){
+    if(!isAdmin){ctx.pushToast({type:'error',message:'Only admins can edit profiles'});return;}
+    if(!form.name.trim()){ctx.pushToast({type:'error',message:'Name is required'});return;}
+    if(!String(form.access_code||'').trim()){ctx.pushToast({type:'error',message:'Access code is required'});return;}
+    var u=Object.assign({},form,{id:form.id||uid(),access_code:String(form.access_code).trim(),active:form.active!==false});
+    var exists=ctx.users.some(function(x){return x.id===u.id;});
+    var next=exists?ctx.users.map(function(x){return x.id===u.id?u:x;}):ctx.users.concat([u]);
+    ctx.setUsers(next);
+    ctx.addActivity&&ctx.addActivity('profile','user',{name:u.name,role:u.role});
+    setForm(blank);
+    ctx.pushToast({type:'success',message:exists?'Profile updated':'Profile created'});
+  }
+  function editUser(u){setForm(Object.assign({},u)); window.scrollTo({top:0,behavior:'smooth'});}
+  function removeUser(u){
+    if(!isAdmin){ctx.pushToast({type:'error',message:'Only admins can remove profiles'});return;}
+    if(u.id===ctx.currentUserId){ctx.pushToast({type:'error',message:'You cannot remove the active profile'});return;}
+    if(!confirm('Remove '+u.name+'?')) return;
+    ctx.setUsers(ctx.users.filter(function(x){return x.id!==u.id;}));
+    ctx.addActivity&&ctx.addActivity('profile','user',{removed:u.name});
+    ctx.pushToast({type:'success',message:'Profile removed'});
+  }
+  function switchTo(u){ctx.setCurrentUserId(u.id);ctx.addActivity&&ctx.addActivity('profile','switch',{to:u.name});ctx.pushToast({type:'info',message:'Switched to '+u.name});}
+  return h('div',{className:"space-y-5"},
+    h('div',{className:"flex flex-wrap items-center justify-between gap-3"},
+      h('div',null,h('h1',{className:"text-2xl font-bold"},'User Profiles'),h('p',{className:"text-sm text-slate-500 dark:text-slate-400"},'Create profiles, assign access codes, and control buyer-specific views.')),
+      h('div',{className:"text-xs px-3 py-1.5 rounded-full bg-brand-100 text-brand-700 dark:bg-brand-900/40 dark:text-brand-200"},'Active: '+ctx.profile.name+' • '+ctx.profile.role)
+    ),
+    h(WarningBanner,{tone:"amber",icon:'🔐',title:"Local profile login",desc:"Each user has a profile-specific access code. This is browser-based convenience security, not enterprise identity management."}),
+    !isAdmin?h(WarningBanner,{tone:"amber",icon:'🔒',title:"Profile management is admin-only",desc:"Only Admin profiles can add/edit/remove users or change access codes."}):null,
+    h(Card,{title:isAdmin?(form.id?'Edit Profile':'Add Profile'):'Current Profile'},
+      h('div',{className:"grid grid-cols-1 md:grid-cols-6 gap-3"},
+        h('label',{className:"text-sm md:col-span-2"},'Name',h('input',{disabled:!isAdmin,value:isAdmin?form.name:ctx.profile.name,onChange:function(e){setForm(Object.assign({},form,{name:e.target.value}));},placeholder:"Full name",className:"w-full mt-1 px-3 py-1.5 rounded-md border-2 border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white text-sm"})),
+        h('label',{className:"text-sm md:col-span-2"},'Email',h('input',{disabled:!isAdmin,value:isAdmin?form.email:ctx.profile.email,onChange:function(e){setForm(Object.assign({},form,{email:e.target.value}));},placeholder:"email@acmepaper.com",className:"w-full mt-1 px-3 py-1.5 rounded-md border-2 border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white text-sm"})),
+        h('label',{className:"text-sm"},'Role',h('select',{disabled:!isAdmin,value:isAdmin?form.role:ctx.currentUser.role,onChange:function(e){setForm(Object.assign({},form,{role:e.target.value,buyer_name:e.target.value==='buyer'?form.buyer_name:''}));},className:"w-full mt-1 px-3 py-1.5 rounded-md border-2 border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white text-sm"},h('option',{value:"admin"},'Admin'),h('option',{value:"manager"},'Manager'),h('option',{value:"buyer"},'Buyer'))),
+        h('label',{className:"text-sm"},'Access Code',h('input',{disabled:!isAdmin,value:isAdmin?form.access_code:'••••',onChange:function(e){setForm(Object.assign({},form,{access_code:e.target.value}));},placeholder:"4-8 digits",className:"w-full mt-1 px-3 py-1.5 rounded-md border-2 border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white text-sm font-mono"})),
+        h('label',{className:"text-sm md:col-span-2"},'Assigned Buyer',h('input',{disabled:!isAdmin || form.role!=='buyer',value:isAdmin?form.buyer_name:ctx.profile.buyer_name,onChange:function(e){setForm(Object.assign({},form,{buyer_name:e.target.value}));},list:"buyer-name-list",placeholder:"Buyer Name",className:"w-full mt-1 px-3 py-1.5 rounded-md border-2 border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white text-sm"})),
+        h('datalist',{id:"buyer-name-list"},buyers.map(function(b){return h('option',{key:b,value:b});}))
+      ),
+      isAdmin?h('div',{className:"flex gap-2 mt-3"},h(Btn,{variant:"primary",onClick:saveUser},form.id?'Save Changes':'Add Profile'),h(Btn,{variant:"outline",onClick:function(){setForm(blank);}},'Clear')):null
+    ),
+    h(Card,{title:"Profiles",actions:isAdmin?h(Btn,{variant:"outline",onClick:function(){setForm(blank);}},'New Profile'):null},
+      h('div',{className:"overflow-x-auto"},
+        h('table',{className:"w-full text-sm"},
+          h('thead',{className:"bg-slate-100 dark:bg-slate-700 text-xs uppercase"},h('tr',null,h('th',{className:"px-3 py-2 text-left"},'User'),h('th',{className:"px-3 py-2 text-left"},'Role'),h('th',{className:"px-3 py-2 text-left"},'Access Code'),h('th',{className:"px-3 py-2 text-left"},'Assigned Buyer'),h('th',{className:"px-3 py-2 text-left"},'Visibility'),h('th',{className:"px-3 py-2 text-right"},'Actions'))),
+          h('tbody',null,ctx.users.map(function(u){
+            var count=(u.role==='buyer')?(ctx.allInventory||ctx.inventory).filter(function(r){return buyerMatches(r.buyer_name,u.buyer_name);}).length:(ctx.allInventory||ctx.inventory).length;
+            return h('tr',{key:u.id,className:"border-t border-slate-100 dark:border-slate-700/40 "+(u.id===ctx.currentUserId?'bg-brand-50 dark:bg-brand-900/20':'')},
+              h('td',{className:"px-3 py-2"},h('div',{className:"font-semibold"},u.name),h('div',{className:"text-xs text-slate-500"},u.email||'No email')),
+              h('td',{className:"px-3 py-2"},h('span',{className:"px-2 py-0.5 rounded-full text-xs font-medium "+(u.role==='admin'?'bg-purple-100 text-purple-700':u.role==='manager'?'bg-sky-100 text-sky-700':'bg-emerald-100 text-emerald-700')},roleLabel(u.role))),
+              h('td',{className:"px-3 py-2 font-mono text-xs"},isAdmin?u.access_code:'••••'),
+              h('td',{className:"px-3 py-2"},u.buyer_name||'All buyers'),
+              h('td',{className:"px-3 py-2 text-xs"},count+' SKU(s)'),
+              h('td',{className:"px-3 py-2 text-right"},h('div',{className:"flex justify-end gap-2 flex-wrap"},h(Btn,{variant:u.id===ctx.currentUserId?'green':'outline',onClick:function(){switchTo(u);}},u.id===ctx.currentUserId?'Active':'Switch'),isAdmin?h(Btn,{variant:"outline",onClick:function(){editUser(u);}},'Edit'):null,isAdmin?h(Btn,{variant:"red",onClick:function(){removeUser(u);}},'Remove'):null))
+            );
+          }))
+        )
+      )
+    )
+  );
+}
 function SettingsPage(){
   var ctx=useApp();
+  if(ctx.currentUser && ctx.currentUser.role==='buyer'){return h('div',{className:"space-y-4"},h(WarningBanner,{tone:"amber",icon:"🔒",title:"Settings are admin/manager only",desc:"Use the Profiles page to switch users. Contact an admin for app configuration changes."}),h(Btn,{variant:"outline",onClick:function(){go("/profiles");}},"Open Profiles"));}
   var inventoryVendorNames = Array.from(new Set(ctx.inventory.map(function(r){return r.vendor_name;}).filter(Boolean))).sort();
   var allVendorNames = Array.from(new Set(inventoryVendorNames.concat(ctx.vendors.map(function(v){return v.vendor_name;})))).filter(Boolean).sort();
   function getOrCreate(name){
