@@ -1,0 +1,1809 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Acme Paper — Dead Inventory Manager</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%93%A6%3C/text%3E%3C/svg%3E"/>
+<script>window.tailwind={config:{darkMode:'class',theme:{extend:{colors:{brand:{50:'#eef2ff',100:'#e0e7ff',200:'#c7d2fe',400:'#818cf8',500:'#6366f1',600:'#4f46e5',700:'#4338ca',900:'#312e81'},accent:{400:'#f87171',500:'#ef4444',600:'#dc2626',700:'#b91c1c'}},fontFamily:{sans:['Inter','system-ui','sans-serif']},boxShadow:{soft:'0 1px 3px 0 rgb(0 0 0 / 0.06)',card:'0 4px 6px -1px rgb(0 0 0 / 0.05)'}}}}}</script>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script crossorigin src="https://unpkg.com/react@18.2.0/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+<script src="https://unpkg.com/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+body{font-family:Inter,system-ui,sans-serif}
+/* Form controls — force readable text in both themes */
+input[type="text"], input[type="email"], input[type="password"], input[type="search"], input[type="color"], input:not([type]), textarea, select {
+  color: rgb(15 23 42) !important;
+  background-color: white;
+}
+.dark input[type="text"], .dark input[type="email"], .dark input[type="password"], .dark input[type="search"], .dark input:not([type]), .dark textarea, .dark select {
+  color: rgb(241 245 249) !important;
+  background-color: rgb(51 65 85);
+}
+.dark input[disabled] { color: rgb(148 163 184) !important; background-color: rgb(30 41 59); }
+/* Placeholders always visible */
+input::placeholder, textarea::placeholder { color: rgb(100 116 139) !important; opacity: 1; }
+.dark input::placeholder, .dark textarea::placeholder { color: rgb(148 163 184) !important; }
+/* Buttons, labels, and table cells inherit so backgrounds win */
+button, label, table th, table td { color: inherit; }
+/* Code chips */
+code { color: rgb(30 41 59); background-color: rgb(241 245 249); padding: 1px 6px; border-radius: 3px; font-size: 90%; }
+.dark code { color: rgb(241 245 249); background-color: rgb(51 65 85); }
+/* High-contrast theme toggle */
+#dim-theme-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 6px 12px; border-radius: 6px;
+  border: 2px solid rgb(99 102 241);
+  background: white; color: rgb(15 23 42);
+  font-weight: 600; font-size: 13px; cursor: pointer;
+  transition: all 0.15s; line-height: 1;
+}
+#dim-theme-btn:hover { background: rgb(238 242 255); }
+.dark #dim-theme-btn { background: rgb(30 41 59); color: rgb(241 245 249); border-color: rgb(129 140 248); }
+.dark #dim-theme-btn:hover { background: rgb(51 65 85); }
+
+/* Additional high-contrast fixes for all pages */
+.dark table, .dark th, .dark td { color:#f1f5f9 !important; }
+.dark select option { background:#1e293b; color:#ffffff; }
+.dark input, .dark textarea, .dark select { border-color:#64748b !important; }
+.dark details summary { color:#f8fafc !important; }
+.dark a { color:#93c5fd !important; }
+.dark .text-slate-500, .dark .text-slate-400 { color:#cbd5e1 !important; }
+.dark .bg-slate-50, .dark .bg-white { color:#f1f5f9; }
+.dark pre { color:#e2e8f0 !important; }
+
+/* Force readable text on colored buttons */
+button.bg-brand-600, button.bg-brand-700,
+button.bg-accent-600, button.bg-accent-700,
+button.bg-emerald-600, button.bg-emerald-700,
+button.bg-amber-500, button.bg-amber-600 { color:#ffffff !important; }
+/* Outline buttons in light mode need dark text */
+button.border-slate-400 { color:#0f172a !important; background-color:#ffffff !important; }
+.dark button.border-slate-400 { color:#f8fafc !important; background-color:#334155 !important; border-color:#64748b !important; }
+button.bg-transparent { color:#0f172a !important; }
+.dark button.bg-transparent { color:#f1f5f9 !important; }
+table thead th { color:#1e293b !important; }
+.dark table thead th { color:#f1f5f9 !important; }
+details summary { color:#0f172a !important; }
+.dark details summary { color:#f8fafc !important; }
+svg text { fill:#334155 !important; }
+.dark svg text { fill:#e2e8f0 !important; }
+
+</style>
+</head>
+<body class="bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-100">
+<div id="root"><div style="padding:40px;text-align:center;font-family:system-ui;color:#64748b">Loading Acme Paper Dead Inventory Manager…</div></div>
+<script>
+(function(){
+var h = React.createElement;
+var Fragment = React.Fragment;
+var useState = React.useState, useEffect = React.useEffect, useMemo = React.useMemo, useRef = React.useRef, useContext = React.useContext, createContext = React.createContext, useCallback = React.useCallback;
+
+var COLORS = ["#6366f1","#ef4444","#10b981","#f59e0b","#06b6d4","#8b5cf6","#ec4899","#84cc16","#f97316","#0ea5e9","#64748b","#facc15","#14b8a6"];
+var HEADER_MAP = {
+  "item id":"internal_id",
+  "item":"sku",
+  "description":"description",
+  "dnr activity code":"dnr_activity_code",
+  "item vendor":"vendor_item_number",
+  "preferred vendor":"vendor_name",
+  "last date sold":"last_date_sold",
+  "total inventory on hand":"total_inventory_on_hand",
+  "last date purchased":"last_date_purchased",
+  "buyer name":"buyer_name",
+  "preferred vendor price":"preferred_vendor_price",
+  "extended cost":"extended_cost",
+  "product category":"product_category",
+  "po 1":"po_1","po1":"po_1","po number 1":"po_1","po number":"po_1",
+  "po 1 qty":"po_1_qty","po1 qty":"po_1_qty","po quantity 1":"po_1_qty",
+  "po 2":"po_2","po2":"po_2","po number 2":"po_2",
+  "po 2 qty":"po_2_qty","po2 qty":"po_2_qty","po quantity 2":"po_2_qty",
+  "po 3":"po_3","po3":"po_3","po number 3":"po_3",
+  "po 3 qty":"po_3_qty","po3 qty":"po_3_qty","po quantity 3":"po_3_qty"
+};
+var STRIP_COLS = ["item sales rep","sales rep","item sales representative"];
+var REQUIRED_COLS = ["sku","description","buyer_name","vendor_name","total_inventory_on_hand","extended_cost"];
+
+function fmtUSD(n){return new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',minimumFractionDigits:2,maximumFractionDigits:2}).format(Number(n||0));}
+function fmtUSDRound(n){return new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',maximumFractionDigits:0}).format(Number(n||0));}
+function fmtNum(n){return new Intl.NumberFormat('en-US').format(Number(n||0));}
+function daysAgo(d){if(!d)return null; var t=new Date(d).getTime(); if(isNaN(t))return null; return Math.floor((Date.now()-t)/86400000);}
+function slug(s){return String(s||"").toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"");}
+function groupBy(arr,key){return arr.reduce(function(a,x){var k=x[key]||"—";(a[k]=a[k]||[]).push(x);return a;},{});}
+function uid(){return crypto.randomUUID?crypto.randomUUID():Math.random().toString(36).slice(2);}
+function normName(s){return String(s==null?"":s).trim().replace(/\s+/g," ");}
+function isBlank(v){if(v==null) return true; var t=String(v).trim().toLowerCase(); return t===""||t==="n/a"||t==="null"||t==="undefined";}
+function parseNum(v){if(isBlank(v)) return null; var n=parseFloat(String(v).replace(/[^0-9.\-]/g,"")); return isNaN(n)?null:n;}
+function parseInt2(v){if(isBlank(v)) return null; var n=parseInt(String(v).replace(/[^0-9\-]/g,""),10); return isNaN(n)?null:n;}
+function parseDate(v){if(isBlank(v)) return null; if(v instanceof Date) return v.toISOString().slice(0,10); var d=new Date(v); if(isNaN(d.getTime())) return null; return d.toISOString().slice(0,10);}
+
+function getPoEntries(r){
+  return [
+    {po:String((r&&r.po_1)||"").trim(), qty:parseInt2(r&&r.po_1_qty)||0},
+    {po:String((r&&r.po_2)||"").trim(), qty:parseInt2(r&&r.po_2_qty)||0},
+    {po:String((r&&r.po_3)||"").trim(), qty:parseInt2(r&&r.po_3_qty)||0}
+  ];
+}
+function hasAnyPo(r){ return getPoEntries(r).some(function(x){return !!x.po;}); }
+function totalPoQty(r){ return getPoEntries(r).reduce(function(s,x){return s+(x.po?Number(x.qty||0):0);},0); }
+function isPoQtyComplete(r){ var need=parseInt2(r&&r.total_inventory_on_hand)||0; if(!hasAnyPo(r)) return false; return need<=0 ? true : totalPoQty(r)===need; }
+function poNeedsWork(r){ return !hasAnyPo(r) || !isPoQtyComplete(r); }
+function summarizePO(r){ return getPoEntries(r).filter(function(x){return x.po;}).map(function(x){return x.po+(x.qty?" ("+x.qty+")":"");}).join(", "); }
+function poSummaryDisplay(r){ return summarizePO(r)||"\u2014"; }
+function derivePoStatus(r){ if(!hasAnyPo(r)) return "needs_po"; if(!isPoQtyComplete(r)) return "partial_po"; return "po_assigned"; }
+function normalizePoFields(r){
+  var u=Object.assign({},r||{});
+  if(!u.po_1 && u.po_number) u.po_1=String(u.po_number||"").trim();
+  u.po_1_qty=parseInt2(u.po_1_qty)||0; u.po_2_qty=parseInt2(u.po_2_qty)||0; u.po_3_qty=parseInt2(u.po_3_qty)||0;
+  if(u.po_1 && !u.po_1_qty && !(u.po_2||u.po_3) && u.total_inventory_on_hand) u.po_1_qty=parseInt2(u.total_inventory_on_hand)||0;
+  u.po_number=summarizePO(u);
+  if(u.po_status!=="sent_to_vendor" && u.po_status!=="ready_to_email") u.po_status=derivePoStatus(u);
+  return u;
+}
+
+
+function normalizeRow(rowObj, fields){
+  var out = {id:uid(),internal_id:"",sku:"",description:"",dnr_activity_code:"",vendor_item_number:"",vendor_name:"",last_date_sold:null,total_inventory_on_hand:0,last_date_purchased:null,buyer_name:"",preferred_vendor_price:0,extended_cost:0,product_category:"",po_number:"",po_1:"",po_1_qty:0,po_2:"",po_2_qty:0,po_3:"",po_3_qty:0,po_status:"needs_po",po_date_assigned:null,notes:"",created_at:new Date().toISOString(),updated_at:new Date().toISOString()};
+  fields.forEach(function(f){
+    var key = HEADER_MAP[String(f).trim().toLowerCase()];
+    if(!key) return;
+    var val = rowObj[f];
+    if(key==="extended_cost"||key==="preferred_vendor_price"){ out[key] = parseNum(val) || 0; }
+    else if(key==="po_1_qty"||key==="po_2_qty"||key==="po_3_qty"){ out[key] = parseInt2(val) || 0; }
+    else if(key==="total_inventory_on_hand"){ out[key] = parseInt2(val) || 0; }
+    else if(key==="last_date_sold"||key==="last_date_purchased"){ out[key] = parseDate(val); }
+    else if(key==="buyer_name"||key==="vendor_name"){ out[key] = normName(val); }
+    else if(key==="sku"||key==="internal_id"||key==="vendor_item_number"){ out[key] = String(val==null?"":val).trim(); }
+    else { out[key] = isBlank(val) ? "" : String(val).trim(); }
+  });
+  if(!out.sku && out.internal_id) out.sku = out.internal_id;
+  if(!out.extended_cost && out.preferred_vendor_price && out.total_inventory_on_hand){ out.extended_cost = +(out.preferred_vendor_price * out.total_inventory_on_hand).toFixed(2); }
+  out = normalizePoFields(out);
+  return out;
+}
+
+var DEFAULT_EMAIL = {subject:"Dead Inventory Return Request - {{vendor}} - PO {{po}}", body:"Hi {{vendor}},\n\nPlease find below the dead inventory items we'd like to return. Each SKU includes its associated PO number for your reference.\n\nLet me know if you need anything else to process these returns.\n\nThanks,\n{{user}}\nAcme Paper and Supply Co."};
+var DEFAULT_BRANDING = {company:"Acme Paper and Supply Co.",primary:"#4f46e5",accent:"#ef4444"};
+var DEFAULT_PROFILE = {name:"Damola Akinyemi",email:"dakinyemi@acmepaper.com",role:"Supply Chain Analyst"};
+var LS = {get:function(k,fb){try{var v=localStorage.getItem(k);return v?JSON.parse(v):fb;}catch(e){return fb;}},set:function(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}};
+
+var CLOUD_INVENTORY_COLS = ["id","internal_id","sku","description","dnr_activity_code","vendor_item_number","vendor_name","last_date_sold","total_inventory_on_hand","last_date_purchased","buyer_name","preferred_vendor_price","extended_cost","product_category","po_number","po_1","po_1_qty","po_2","po_2_qty","po_3","po_3_qty","po_status","po_date_assigned","notes","created_at","updated_at"];
+var CLOUD_VENDOR_COLS = ["id","vendor_name","contact_name","contact_email","phone"];
+function pickCloudFields(obj, cols){ var out={}; cols.forEach(function(c){ if(obj && Object.prototype.hasOwnProperty.call(obj,c)) out[c]=obj[c]; }); return out; }
+function getSupabaseConfig(){ return LS.get("dim_v3_supabase_config", {url:"", anonKey:""}); }
+function hasSupabaseConfig(){ var c=getSupabaseConfig(); return !!(c && c.url && c.anonKey); }
+function getSupabaseClient(){
+  var c=getSupabaseConfig();
+  if(!c || !c.url || !c.anonKey || !window.supabase || !window.supabase.createClient) return null;
+  try { return window.supabase.createClient(c.url.trim(), c.anonKey.trim()); } catch(e){ console.error("Supabase client error", e); return null; }
+}
+async function dbLoadInventory(){
+  var client=getSupabaseClient(); if(!client) return {skipped:true,data:[]};
+  var res = await client.from("inventory").select("*").order("created_at", {ascending:true});
+  if(res.error) throw res.error;
+  return {skipped:false,data:res.data||[]};
+}
+async function dbLoadVendors(){
+  var client=getSupabaseClient(); if(!client) return {skipped:true,data:[]};
+  var res = await client.from("vendors").select("*").order("vendor_name", {ascending:true});
+  if(res.error) throw res.error;
+  return {skipped:false,data:res.data||[]};
+}
+async function dbInsertRows(table, rows, cols){
+  var client=getSupabaseClient(); if(!client) return {skipped:true};
+  var clean=(rows||[]).map(function(r){return pickCloudFields(r, cols);});
+  for(var i=0;i<clean.length;i+=500){
+    var chunk=clean.slice(i,i+500);
+    if(chunk.length===0) continue;
+    var res=await client.from(table).insert(chunk);
+    if(res.error) throw res.error;
+  }
+  return {skipped:false};
+}
+async function dbUpsertRows(table, rows, cols){
+  var client=getSupabaseClient(); if(!client) return {skipped:true};
+  var clean=(rows||[]).map(function(r){return pickCloudFields(r, cols);});
+  for(var i=0;i<clean.length;i+=500){
+    var chunk=clean.slice(i,i+500);
+    if(chunk.length===0) continue;
+    var res=await client.from(table).upsert(chunk, {onConflict:"id"});
+    if(res.error) throw res.error;
+  }
+  return {skipped:false};
+}
+async function dbReplaceInventory(rows){
+  var client=getSupabaseClient(); if(!client) return {skipped:true};
+  var del=await client.from("inventory").delete().not("id", "is", null);
+  if(del.error) throw del.error;
+  return dbInsertRows("inventory", rows, CLOUD_INVENTORY_COLS);
+}
+function dbUpsertInventoryRows(rows){ dbUpsertRows("inventory", rows, CLOUD_INVENTORY_COLS).catch(function(e){console.error("Inventory cloud sync failed", e);}); }
+function dbUpsertVendors(rows){ dbUpsertRows("vendors", rows, CLOUD_VENDOR_COLS).catch(function(e){console.error("Vendor cloud sync failed", e);}); }
+async function dbSaveUpload(rec){
+  var client=getSupabaseClient(); if(!client) return {skipped:true};
+  var clean=pickCloudFields(rec,["id","filename","uploaded_at","records_count","uploaded_by","format","action"]);
+  var res=await client.from("uploads").insert(clean);
+  if(res.error) { console.warn("Upload history cloud save skipped/failed", res.error); return {skipped:false,error:res.error}; }
+  return {skipped:false};
+}
+
+
+function BarChartSVG(props){
+  var data=props.data, color=props.color||"#4f46e5", height=props.height||240;
+  if(!data||data.length===0) return h('div',{className:"text-sm text-slate-500 py-8 text-center"},"No data");
+  var max=Math.max.apply(null,data.map(function(d){return d.value;}))||1;
+  var pad={top:10,right:10,bottom:60,left:60}; var w=600,iw=w-pad.left-pad.right,ih=height-pad.top-pad.bottom;
+  var slot=iw/data.length, barW=slot*0.7;
+  var children=[];
+  [0,0.25,0.5,0.75,1].forEach(function(t,i){children.push(h('line',{key:"g"+i,x1:pad.left,x2:w-pad.right,y1:pad.top+ih*(1-t),y2:pad.top+ih*(1-t),stroke:"#e2e8f0",strokeDasharray:"3 3"}));});
+  data.forEach(function(d,i){
+    var bh=(d.value/max)*ih, x=pad.left+i*slot+(slot-barW)/2, y=pad.top+ih-bh;
+    var lx=x+barW/2, ly=height-pad.bottom+14;
+    children.push(h('g',{key:i},
+      h('rect',{x:x,y:y,width:barW,height:bh,fill:color,rx:3},h('title',null,d.name+": "+fmtUSDRound(d.value))),
+      h('text',{x:lx,y:ly,fontSize:9,textAnchor:"end",transform:"rotate(-35, "+lx+", "+ly+")",fill:"#64748b"},String(d.name).substring(0,18))
+    ));
+  });
+  [0,0.5,1].forEach(function(t,i){children.push(h('text',{key:"y"+i,x:pad.left-6,y:pad.top+ih*(1-t)+3,fontSize:10,textAnchor:"end",fill:"#94a3b8"},fmtUSDRound(max*t)));});
+  return h('svg',{viewBox:"0 0 "+w+" "+height,className:"w-full",style:{height:height,maxHeight:height},preserveAspectRatio:"xMidYMid meet"},children);
+}
+
+function PieChartSVG(props){
+  var data=props.data, height=props.height||240;
+  if(!data||data.length===0) return h('div',{className:"text-sm text-slate-500 py-8 text-center"},"No data");
+  var total=data.reduce(function(s,d){return s+d.value;},0)||1;
+  var cx=120,cy=120,r=90,acc=0;
+  var slices=data.map(function(d,i){
+    var sa=(acc/total)*Math.PI*2-Math.PI/2; acc+=d.value;
+    var ea=(acc/total)*Math.PI*2-Math.PI/2;
+    var large=ea-sa>Math.PI?1:0;
+    var x1=cx+r*Math.cos(sa),y1=cy+r*Math.sin(sa),x2=cx+r*Math.cos(ea),y2=cy+r*Math.sin(ea);
+    return {path:"M "+cx+" "+cy+" L "+x1+" "+y1+" A "+r+" "+r+" 0 "+large+" 1 "+x2+" "+y2+" Z",color:COLORS[i%COLORS.length],name:d.name,value:d.value,pct:Math.round(100*d.value/total)};
+  });
+  var svgChildren=slices.map(function(s,i){return h('path',{key:i,d:s.path,fill:s.color},h('title',null,s.name+": "+s.value+" ("+s.pct+"%)"));});
+  svgChildren.push(h('circle',{key:"hole",cx:120,cy:120,r:42,fill:"white",className:"dark:fill-slate-800"}));
+  svgChildren.push(h('text',{key:"tl",x:120,y:116,textAnchor:"middle",fontSize:10,fill:"#94a3b8"},"TOTAL"));
+  svgChildren.push(h('text',{key:"tv",x:120,y:134,textAnchor:"middle",fontSize:18,fontWeight:"bold",fill:"#1e293b",className:"dark:fill-white"},String(total)));
+  var legend=slices.map(function(s,i){
+    return h('div',{key:i,className:"flex items-center gap-2"},
+      h('span',{className:"inline-block w-3 h-3 rounded-sm",style:{background:s.color}}),
+      h('span',{className:"flex-1 truncate"},s.name),
+      h('span',{className:"text-slate-500 dark:text-slate-400 tabular-nums"},s.value+" ("+s.pct+"%)")
+    );
+  });
+  return h('div',{className:"flex items-center gap-4",style:{height:height}},
+    h('svg',{viewBox:"0 0 240 240",className:"flex-shrink-0",style:{width:height,height:height}},svgChildren),
+    h('div',{className:"flex-1 overflow-auto text-xs space-y-1.5",style:{maxHeight:height}},legend)
+  );
+}
+
+function LineChartSVG(props){
+  var data=props.data, color=props.color||"#10b981", height=props.height||240;
+  if(!data||data.length===0) return h('div',{className:"text-sm text-slate-500 py-8 text-center"},"No data");
+  var max=Math.max.apply(null,data.map(function(d){return d.value;}))||1;
+  var pad={top:10,right:20,bottom:35,left:40}, w=600, iw=w-pad.left-pad.right, ih=height-pad.top-pad.bottom;
+  var pts=data.map(function(d,i){return {x:pad.left+(data.length===1?iw/2:(i/(data.length-1))*iw),y:pad.top+ih-(d.value/max)*ih,d:d};});
+  var path=pts.map(function(p,i){return (i===0?'M':'L')+' '+p.x+' '+p.y;}).join(' ');
+  var areaPath=path+" L "+pts[pts.length-1].x+" "+(pad.top+ih)+" L "+pts[0].x+" "+(pad.top+ih)+" Z";
+  var children=[h('defs',{key:"d"},h('linearGradient',{id:"lineFill",x1:"0",x2:"0",y1:"0",y2:"1"},h('stop',{offset:"0%",stopColor:color,stopOpacity:"0.25"}),h('stop',{offset:"100%",stopColor:color,stopOpacity:"0"})))];
+  [0,0.25,0.5,0.75,1].forEach(function(t,i){children.push(h('line',{key:"g"+i,x1:pad.left,x2:w-pad.right,y1:pad.top+ih*(1-t),y2:pad.top+ih*(1-t),stroke:"#e2e8f0",strokeDasharray:"3 3"}));});
+  children.push(h('path',{key:"a",d:areaPath,fill:"url(#lineFill)"}));
+  children.push(h('path',{key:"p",d:path,fill:"none",stroke:color,strokeWidth:2.5}));
+  pts.forEach(function(p,i){children.push(h('circle',{key:"c"+i,cx:p.x,cy:p.y,r:4,fill:"#4f46e5",stroke:"white",strokeWidth:2},h('title',null,p.d.name+": "+p.d.value)));});
+  pts.forEach(function(p,i){children.push(h('text',{key:"t"+i,x:p.x,y:height-pad.bottom+14,fontSize:10,textAnchor:"middle",fill:"#64748b"},p.d.name));});
+  [0,0.5,1].forEach(function(t,i){children.push(h('text',{key:"y"+i,x:pad.left-6,y:pad.top+ih*(1-t)+3,fontSize:10,textAnchor:"end",fill:"#94a3b8"},Math.round(max*t)));});
+  return h('svg',{viewBox:"0 0 "+w+" "+height,className:"w-full",style:{height:height},preserveAspectRatio:"xMidYMid meet"},children);
+}
+
+var AppCtx = createContext(null);
+function useApp(){return useContext(AppCtx);}
+function useHash(){
+  var st=useState(function(){return window.location.hash||"#/dashboard";});
+  var hash=st[0], setHash=st[1];
+  useEffect(function(){
+    function onH(){setHash(window.location.hash||"#/dashboard");}
+    window.addEventListener('hashchange',onH);
+    if(!window.location.hash) window.location.hash="#/dashboard";
+    return function(){window.removeEventListener('hashchange',onH);};
+  },[]);
+  return hash;
+}
+function go(p){window.location.hash=p;}
+
+function AppProvider(props){
+  var invS=useState(function(){return (LS.get("dim_v3_inventory",[])||[]).map(normalizePoFields);}); var inventory=invS[0], setInventoryState=invS[1];
+  var venS=useState(function(){return LS.get("dim_v3_vendors",[]);}); var vendors=venS[0], setVendorsState=venS[1];
+  var upS=useState(function(){return LS.get("dim_v3_uploads",[]);}); var uploads=upS[0], setUploadsState=upS[1];
+  var prS=useState(function(){return LS.get("dim_v3_profile",DEFAULT_PROFILE);}); var profile=prS[0], setProfileState=prS[1];
+  var brS=useState(function(){return LS.get("dim_v3_branding",DEFAULT_BRANDING);}); var branding=brS[0], setBrandingState=brS[1];
+  var emS=useState(function(){return LS.get("dim_v3_email_tpl",DEFAULT_EMAIL);}); var emailTemplate=emS[0], setEmailTplState=emS[1];
+  var thS=useState(function(){return LS.get("dim_v3_theme","light");}); var theme=thS[0], setTheme=thS[1];
+  var tS=useState([]); var toasts=tS[0], setToasts=tS[1];
+  var sS=useState(""); var searchGlobal=sS[0], setSearchGlobal=sS[1];
+  var clS=useState(hasSupabaseConfig()?"Cloud ready":"Local mode"); var cloudStatus=clS[0], setCloudStatus=clS[1];
+  function setInventory(v){var clean=(v||[]).map(normalizePoFields); setInventoryState(clean); LS.set("dim_v3_inventory",clean);}
+  function setVendors(v){setVendorsState(v); LS.set("dim_v3_vendors",v); if(hasSupabaseConfig()) dbUpsertVendors(v);}
+  function setUploads(v){setUploadsState(v); LS.set("dim_v3_uploads",v);}
+  function setProfile(v){setProfileState(v); LS.set("dim_v3_profile",v);}
+  function setBranding(v){setBrandingState(v); LS.set("dim_v3_branding",v);}
+  function setEmailTemplate(v){setEmailTplState(v); LS.set("dim_v3_email_tpl",v);}
+  useEffect(function(){
+    if(!hasSupabaseConfig()) { setCloudStatus("Local mode"); return; }
+    setCloudStatus("Loading cloud data…");
+    Promise.all([dbLoadInventory(), dbLoadVendors()]).then(function(results){
+      var invRes=results[0], venRes=results[1];
+      if(invRes && invRes.data && invRes.data.length){ var normalizedCloud=invRes.data.map(normalizePoFields); setInventoryState(normalizedCloud); LS.set("dim_v3_inventory",normalizedCloud); }
+      if(venRes && venRes.data && venRes.data.length){ setVendorsState(venRes.data); LS.set("dim_v3_vendors",venRes.data); }
+      setCloudStatus("Cloud connected");
+    }).catch(function(e){ console.error("Cloud load failed", e); setCloudStatus("Cloud error: "+(e.message||"check Supabase table/policies")); });
+  },[]);
+  useEffect(function(){LS.set("dim_v3_theme",theme); document.documentElement.classList.toggle("dark",theme==="dark");},[theme]);
+  var pushToast=useCallback(function(t){var id=uid(); setToasts(function(ts){return ts.concat([Object.assign({id:id},t)]);}); setTimeout(function(){setToasts(function(ts){return ts.filter(function(x){return x.id!==id;});});},3500);},[]);
+  function dismissToast(id){setToasts(function(ts){return ts.filter(function(x){return x.id!==id;});});}
+  function toggleTheme(){setTheme(function(t){return t==="dark"?"light":"dark";});}
+  function syncVendorsFromInventory(inv){
+    var existing = {};
+    vendors.forEach(function(v){existing[v.vendor_name]=v;});
+    var names = Array.from(new Set(inv.map(function(r){return r.vendor_name;}).filter(Boolean)));
+    var merged = names.map(function(n){
+      if(existing[n]) return existing[n];
+      return {id:uid(), vendor_name:n, contact_email:"", contact_name:"", phone:""};
+    });
+    vendors.forEach(function(v){
+      if(names.indexOf(v.vendor_name)<0 && (v.contact_email||v.contact_name||v.phone)) merged.push(v);
+    });
+    setVendors(merged);
+    return merged;
+  }
+  var value={inventory:inventory,setInventory:setInventory,vendors:vendors,setVendors:setVendors,uploads:uploads,setUploads:setUploads,profile:profile,setProfile:setProfile,branding:branding,setBranding:setBranding,emailTemplate:emailTemplate,setEmailTemplate:setEmailTemplate,theme:theme,toggleTheme:toggleTheme,pushToast:pushToast,toasts:toasts,dismissToast:dismissToast,searchGlobal:searchGlobal,setSearchGlobal:setSearchGlobal,syncVendorsFromInventory:syncVendorsFromInventory,cloudStatus:cloudStatus,setCloudStatus:setCloudStatus};
+  return h(AppCtx.Provider,{value:value},props.children);
+}
+
+function Toasts(){
+  var ctx=useApp();
+  return h('div',{className:"fixed top-4 right-4 z-50 space-y-2"},
+    ctx.toasts.map(function(t){
+      return h('div',{key:t.id,className:"min-w-[240px] max-w-sm shadow-lg rounded-lg px-4 py-3 flex items-start gap-3 text-sm "+(t.type==='success'?'bg-emerald-600 text-white':t.type==='error'?'bg-accent-600 text-white':t.type==='warning'?'bg-amber-500 text-white':'bg-slate-800 text-white')},
+        h('span',{className:"font-bold"},t.type==='success'?'\u2713':t.type==='error'?'!':t.type==='warning'?'\u26a0\ufe0f':'i'),
+        h('span',{className:"flex-1"},t.message),
+        h('button',{onClick:function(){ctx.dismissToast(t.id);},className:"opacity-70 hover:opacity-100"},'\u00d7')
+      );
+    })
+  );
+}
+
+function StatCard(props){
+  var bar=props.tone==='red'?'bg-accent-500':props.tone==='green'?'bg-emerald-500':props.tone==='blue'?'bg-sky-500':props.tone==='amber'?'bg-amber-500':'bg-brand-500';
+  return h('div',{className:"rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-4 shadow-soft relative overflow-hidden hover:shadow-card transition"},
+    props.tone?h('div',{className:"absolute left-0 top-0 bottom-0 w-1 "+bar}):null,
+    props.icon?h('div',{className:"absolute top-3 right-3 text-2xl opacity-25 select-none"},props.icon):null,
+    h('div',{className:"text-[11px] uppercase tracking-wider font-semibold text-slate-500 dark:text-slate-400"},props.label),
+    h('div',{className:"text-2xl font-bold mt-2 tabular-nums"},props.value),
+    props.sub?h('div',{className:"text-xs text-slate-500 dark:text-slate-400 mt-1"},props.sub):null
+  );
+}
+
+function Pill(props){
+  var map={
+    needs_po:'bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-300',
+    partial_po:'bg-orange-100 text-orange-800 dark:bg-orange-900/40 dark:text-orange-300',
+    po_assigned:'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300',
+    ready_to_email:'bg-sky-100 text-sky-700 dark:bg-sky-900/40 dark:text-sky-300',
+    sent_to_vendor:'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300'
+  };
+  var label={needs_po:'Needs PO',partial_po:'Partial PO',po_assigned:'PO Assigned',ready_to_email:'Ready to Email',sent_to_vendor:'Sent to Vendor'};
+  return h('span',{className:"px-2 py-0.5 rounded-full text-xs font-medium "+(map[props.status]||'bg-slate-200 text-slate-700')},label[props.status]||props.status);
+}
+
+function Card(props){
+  var children=[];
+  if(props.title||props.actions){
+    children.push(h('div',{key:"hd",className:"flex items-center justify-between px-4 py-3 border-b border-slate-100 dark:border-slate-700 flex-wrap gap-2"},
+      h('div',{className:"font-semibold text-slate-800 dark:text-slate-100"},props.title),
+      h('div',{className:"flex gap-2 flex-wrap"},props.actions)
+    ));
+  }
+  children.push(h('div',{key:"bd",className:"p-4"},props.children));
+  return h('div',{className:"rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-card "+(props.className||"")},children);
+}
+
+function Btn(props){
+  var v=props.variant||'primary';
+  var cls = v==='primary' ? 'bg-brand-600 hover:bg-brand-700 text-white shadow-sm border border-brand-700' :
+            v==='red' ? 'bg-accent-600 hover:bg-accent-700 text-white shadow-sm border border-accent-700' :
+            v==='ghost' ? 'bg-transparent hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200' :
+            v==='outline' ? 'border-2 border-slate-400 dark:border-slate-500 bg-white dark:bg-slate-700 hover:bg-slate-100 dark:hover:bg-slate-600 text-slate-800 dark:text-white font-semibold' :
+            v==='green' ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm border border-emerald-700' :
+            v==='amber' ? 'bg-amber-500 hover:bg-amber-600 text-white shadow-sm border border-amber-600' :
+            'bg-slate-300 hover:bg-slate-400 text-slate-900 border border-slate-400';
+  return h('button',{type:props.type||'button',disabled:props.disabled,onClick:props.onClick,className:"inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition disabled:opacity-50 "+cls+" "+(props.className||'')},props.children);
+}
+
+function EmptyState(props){
+  return h('div',{className:"text-center py-16 px-4"},
+    h('div',{className:"text-5xl mb-3"},'📦'),
+    h('div',{className:"text-lg font-semibold"},props.title),
+    h('div',{className:"text-sm text-slate-500 dark:text-slate-400 mt-1 max-w-md mx-auto"},props.desc),
+    props.cta?h(Btn,{className:"mt-4",onClick:props.onCta},props.cta):null
+  );
+}
+
+function WarningBanner(props){
+  var tone = props.tone||'red';
+  var bg = tone==='red'?'bg-rose-50 border-rose-300 dark:bg-rose-950/30 dark:border-rose-800':tone==='amber'?'bg-amber-50 border-amber-300 dark:bg-amber-950/30 dark:border-amber-800':'bg-sky-50 border-sky-300 dark:bg-sky-950/30 dark:border-sky-800';
+  var iconColor = tone==='red'?'text-rose-600':tone==='amber'?'text-amber-600':'text-sky-600';
+  return h('div',{className:"rounded-xl border-2 "+bg+" p-4 flex items-start gap-3"},
+    h('div',{className:"text-2xl "+iconColor},props.icon||'⚠️'),
+    h('div',{className:"flex-1"},
+      h('div',{className:"font-semibold text-slate-900 dark:text-white"},props.title),
+      props.desc?h('div',{className:"text-sm text-slate-700 dark:text-slate-300 mt-1"},props.desc):null,
+      props.actions?h('div',{className:"mt-3 flex gap-2 flex-wrap"},props.actions):null
+    )
+  );
+}
+
+function SupabaseConfigBlock(){
+  var ctx = useApp();
+  var saved = LS.get("dim_v3_supabase_config", {url:"",anonKey:""});
+  var us = useState(saved.url||""); var url=us[0], setUrl=us[1];
+  var ks = useState(saved.anonKey||""); var anonKey=ks[0], setAnonKey=ks[1];
+  function save(){
+    LS.set("dim_v3_supabase_config", {url:url.trim(), anonKey:anonKey.trim()});
+    ctx.setCloudStatus && ctx.setCloudStatus('Cloud credentials saved — reopen or refresh to auto-load'); ctx.pushToast({type:'success',message:'Supabase credentials saved. Refresh/reopen app to auto-load cloud data.'});
+  }
+  function clear(){
+    setUrl(""); setAnonKey("");
+    LS.set("dim_v3_supabase_config", {url:"",anonKey:""});
+    ctx.setCloudStatus && ctx.setCloudStatus('Local mode'); ctx.pushToast({type:'info',message:'Supabase credentials cleared'});
+  }
+  return h('div',null,
+    h('div',{className:"grid grid-cols-1 md:grid-cols-2 gap-3"},
+      h('div',null,
+        h('label',{className:"text-xs font-semibold text-slate-700 dark:text-slate-200"},'Project URL'),
+        h('input',{value:url,onChange:function(e){setUrl(e.target.value);},placeholder:"https://your-project.supabase.co",className:"w-full mt-1 px-3 py-1.5 rounded-md border-2 border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white text-sm focus:border-brand-500 focus:ring-2 focus:ring-brand-100 outline-none"})
+      ),
+      h('div',null,
+        h('label',{className:"text-xs font-semibold text-slate-700 dark:text-slate-200"},'Anon (Public) Key'),
+        h('input',{value:anonKey,onChange:function(e){setAnonKey(e.target.value);},type:"password",placeholder:"eyJhbGciOiJIUzI1NiIs...",className:"w-full mt-1 px-3 py-1.5 rounded-md border-2 border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white text-sm font-mono focus:border-brand-500 focus:ring-2 focus:ring-brand-100 outline-none"})
+      )
+    ),
+    h('div',{className:"flex gap-2 mt-3"},
+      h(Btn,{variant:"primary",onClick:save},'Save credentials'),
+      h(Btn,{variant:"outline",onClick:clear},'Clear')
+    ),
+    h('p',{className:"text-[11px] text-slate-500 dark:text-slate-400 mt-2"},'Cloud sync is active when valid Supabase credentials are saved. The app auto-loads inventory/vendors at startup and syncs uploads, PO edits, and vendor contacts.')
+  );
+}
+
+var NAV = [
+  {path:"/dashboard",label:"Dashboard",icon:"🏠"},
+  {path:"/upload",label:"Upload",icon:"📂"},
+  {path:"/buyers",label:"Buyers",icon:"👥"},
+  {path:"/vendors",label:"Vendors",icon:"🏭"},
+  {path:"/po",label:"PO Assignment",icon:"🧾"},
+  {path:"/export",label:"Export & Email",icon:"📧"},
+  {path:"/reports",label:"Reports",icon:"📊"},
+  {path:"/settings",label:"Settings",icon:"⚙️"}
+];
+
+function Sidebar(props){
+  var brand=h('div',{className:"px-5 py-5 border-b border-white/10 flex items-center gap-3"},
+    h('div',{className:"w-10 h-10 rounded-xl bg-brand-600 grid place-items-center text-xl shadow-lg"},'📦'),
+    h('div',null,
+      h('div',{className:"font-bold leading-tight"},'Acme Paper'),
+      h('div',{className:"text-[11px] text-white/60"},'Dead Inventory Manager')
+    )
+  );
+  var nav=h('nav',{className:"flex-1 overflow-y-auto py-3"},
+    NAV.map(function(item){
+      var active=props.currentPath.indexOf(item.path)===0;
+      return h('a',{key:item.path,href:"#"+item.path,onClick:function(){if(props.onClose)props.onClose();},className:"flex items-center gap-3 px-5 py-2.5 text-sm transition border-l-4 "+(active?"border-brand-500 bg-brand-600/20 text-white font-semibold":"border-transparent hover:bg-white/5 text-white/80")},
+        h('span',{className:"text-base w-5 text-center"},item.icon),item.label
+      );
+    })
+  );
+  var aside=h('aside',{className:"fixed md:static top-0 left-0 z-40 w-64 h-screen bg-gradient-to-b from-slate-800 to-slate-900 text-white flex flex-col transition-transform md:translate-x-0 "+(props.open?"translate-x-0":"-translate-x-full md:translate-x-0")},
+    brand, nav,
+    h('div',{className:"px-5 py-3 text-[11px] text-white/50 border-t border-white/10"},'© '+(new Date().getFullYear())+' Acme Paper')
+  );
+  var overlay=props.open?h('div',{key:"ov",className:"md:hidden fixed inset-0 bg-black/40 z-30",onClick:props.onClose}):null;
+  return h(Fragment,null,overlay,aside);
+}
+
+function Topbar(props){
+  var ctx=useApp();
+  var needsPo=ctx.inventory.filter(function(i){return i.po_status==='needs_po';}).length;
+  return h('header',{className:"sticky top-0 z-20 bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 shadow-soft px-4 py-2.5 flex items-center gap-3"},
+    h('button',{className:"md:hidden p-2 rounded hover:bg-slate-100 dark:hover:bg-slate-700",onClick:props.onHamburger},'☰'),
+    h('div',{className:"flex-1 max-w-xl"},
+      h('input',{value:ctx.searchGlobal,onChange:function(e){ctx.setSearchGlobal(e.target.value);},placeholder:"🔍 Search SKUs, vendors, buyers…",className:"w-full bg-slate-100 dark:bg-slate-900 border-2 border-transparent focus:border-brand-500 focus:ring-2 focus:ring-brand-100 dark:focus:ring-brand-900/40 rounded-lg px-3 py-1.5 text-slate-900 dark:text-white text-sm outline-none transition"})
+    ),
+    h('span',{title:ctx.cloudStatus,className:"hidden lg:inline-flex px-2 py-1 rounded-full text-[11px] font-medium border "+((ctx.cloudStatus&&ctx.cloudStatus.indexOf('Cloud connected')>=0)||ctx.cloudStatus==='Cloud synced'?"bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300 dark:border-emerald-800":ctx.cloudStatus&&ctx.cloudStatus.indexOf('Cloud error')>=0?"bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-900/30 dark:text-rose-300 dark:border-rose-800":"bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-700 dark:text-slate-300 dark:border-slate-600")},ctx.cloudStatus||"Local mode"),
+    h('button',{onClick:ctx.toggleTheme,title:"Toggle theme",className:"p-2 rounded-md hover:bg-slate-100 dark:hover:bg-slate-700 text-lg"},ctx.theme==="dark"?'☀️':'🌙'),
+    h('div',{className:"relative"},
+      h('button',{onClick:function(){go("/po");},title:"SKUs needing PO",className:"p-2 rounded-md hover:bg-slate-100 dark:hover:bg-slate-700 text-lg"},'🔔'),
+      needsPo>0?h('span',{className:"absolute -top-0.5 -right-0.5 bg-accent-500 text-white text-[10px] rounded-full px-1.5 py-0.5 font-semibold"},needsPo):null
+    ),
+    h('div',{className:"hidden sm:flex items-center gap-2 pl-3 border-l border-slate-200 dark:border-slate-700"},
+      h('div',{className:"w-8 h-8 rounded-full bg-brand-600 text-white grid place-items-center text-xs font-bold shadow-sm"},'DA'),
+      h('div',{className:"leading-tight"},
+        h('div',{className:"text-sm font-semibold"},ctx.profile.name),
+        h('div',{className:"text-[11px] text-slate-500 dark:text-slate-400"},ctx.profile.role)
+      )
+    )
+  );
+}
+
+function App(){
+  var hash=useHash();
+  var path=hash.replace(/^#/,"")||"/dashboard";
+  var pathBase = path.split('?')[0];
+  var ds=useState(false); var drawerOpen=ds[0], setDrawerOpen=ds[1];
+  return h(AppProvider,null,
+    h('div',{className:"min-h-screen flex"},
+      h(Sidebar,{open:drawerOpen,onClose:function(){setDrawerOpen(false);},currentPath:pathBase}),
+      h('div',{className:"flex-1 flex flex-col min-w-0"},
+        h(Topbar,{onHamburger:function(){setDrawerOpen(true);}}),
+        h('main',{className:"flex-1 p-4 md:p-6"},h(Router,{path:path}))
+      ),
+      h(Toasts,null)
+    )
+  );
+}
+
+function parseHashQuery(hash){
+  var q = (hash.split('?')[1]||'');
+  var out = {};
+  q.split('&').forEach(function(p){if(!p) return; var kv=p.split('='); out[decodeURIComponent(kv[0])]=decodeURIComponent(kv[1]||'');});
+  return out;
+}
+
+function Router(props){
+  var p=props.path;
+  var base = p.split('?')[0];
+  var query = parseHashQuery(p);
+  if(base.indexOf("/buyers/")===0) return h(BuyerDetailPage,{name:decodeURIComponent(base.split("/")[2]||"")});
+  if(base==="/buyers") return h(BuyersPage,null);
+  if(base.indexOf("/vendors/")===0) return h(VendorDetailPage,{name:decodeURIComponent(base.split("/")[2]||"")});
+  if(base==="/vendors") return h(VendorsPage,null);
+  if(base==="/upload") return h(UploadPage,null);
+  if(base==="/po") return h(POAssignmentPage,{query:query});
+  if(base==="/export") return h(ExportPage,{query:query});
+  if(base==="/reports") return h(ReportsPage,null);
+  if(base==="/settings") return h(SettingsPage,null);
+  return h(DashboardPage,null);
+}
+
+function DashboardPage(){
+  var ctx=useApp();
+  if(ctx.inventory.length===0){
+    return h('div',{className:"min-h-[70vh] flex items-center justify-center"},
+      h('div',{className:"max-w-2xl mx-auto text-center px-4"},
+        h('div',{className:"text-8xl mb-4"},'📦'),
+        h('h1',{className:"text-3xl font-bold text-slate-900 dark:text-white mb-3"},'Welcome to Dead Inventory Manager'),
+        h('p',{className:"text-base text-slate-600 dark:text-slate-300 mb-2"},'Get started by uploading your dead inventory file.'),
+        h('p',{className:"text-sm text-slate-500 dark:text-slate-400 mb-8"},"We'll automatically remove the Item Sales Rep column, break out the data by buyer and vendor, and let you assign PO numbers per SKU before emailing to vendors."),
+        h('div',{className:"flex gap-3 justify-center flex-wrap"},
+          h(Btn,{variant:"red",onClick:function(){go("/upload");},className:"text-base px-6 py-3"},'📂 Upload Your File'),
+          h(Btn,{variant:"outline",onClick:function(){go("/settings");},className:"text-base px-6 py-3"},'⚙️ Configure Settings')
+        ),
+        h('div',{className:"mt-8 grid grid-cols-2 md:grid-cols-4 gap-3 text-xs text-slate-500 dark:text-slate-400"},
+          h('div',{className:"px-3 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200"},'📊 Excel (.xlsx)'),
+          h('div',{className:"px-3 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200"},'📄 CSV'),
+          h('div',{className:"px-3 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200"},'🗂️ TSV'),
+          h('div',{className:"px-3 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200"},'🧾 JSON')
+        )
+      )
+    );
+  }
+  var inv=ctx.inventory;
+  var totalSku=inv.length;
+  var totalCost=inv.reduce(function(s,x){return s+Number(x.extended_cost||0);},0);
+  var uniqVendors=new Set(inv.map(function(x){return x.vendor_name;}).filter(Boolean)).size;
+  var uniqBuyers=new Set(inv.map(function(x){return x.buyer_name;}).filter(Boolean)).size;
+  var needsPo=inv.filter(function(x){return x.po_status==='needs_po';}).length;
+  var poAssigned=inv.filter(function(x){return x.po_status==='po_assigned'||x.po_status==='ready_to_email';}).length;
+  var sentToVendor=inv.filter(function(x){return x.po_status==='sent_to_vendor';}).length;
+  var byVendor=useMemo(function(){var g={}; inv.forEach(function(x){if(!x.vendor_name) return; g[x.vendor_name]=(g[x.vendor_name]||0)+Number(x.extended_cost||0);}); return Object.keys(g).map(function(n){return {name:n,value:Math.round(g[n])};}).sort(function(a,b){return b.value-a.value;}).slice(0,10);},[inv]);
+  var byBuyer=useMemo(function(){var g={}; inv.forEach(function(x){if(!x.buyer_name) return; g[x.buyer_name]=(g[x.buyer_name]||0)+Number(x.extended_cost||0);}); return Object.keys(g).map(function(n){return {name:n,value:Math.round(g[n])};}).sort(function(a,b){return b.value-a.value;});},[inv]);
+  var byCat=useMemo(function(){var g={}; inv.forEach(function(x){var c=x.product_category||"Uncategorized"; g[c]=(g[c]||0)+1;}); return Object.keys(g).map(function(n){return {name:n,value:g[n]};});},[inv]);
+  var aging=useMemo(function(){var b=[{name:"0-30",value:0},{name:"31-90",value:0},{name:"91-180",value:0},{name:"181-365",value:0},{name:"365+",value:0}]; inv.forEach(function(x){var d=daysAgo(x.last_date_sold); if(d==null)return; if(d<=30)b[0].value++; else if(d<=90)b[1].value++; else if(d<=180)b[2].value++; else if(d<=365)b[3].value++; else b[4].value++;}); return b;},[inv]);
+  return h('div',{className:"space-y-5"},
+    h('div',{className:"flex flex-wrap items-center justify-between gap-3"},
+      h('div',null,
+        h('h1',{className:"text-2xl font-bold text-slate-900 dark:text-white"},'Dashboard'),
+        h('p',{className:"text-sm text-slate-500 dark:text-slate-400"},'Snapshot of dead inventory health across vendors and buyers.')
+      ),
+      h('div',{className:"flex gap-2 flex-wrap"},
+        h(Btn,{variant:"outline",onClick:function(){go("/upload");}},'📂 Upload File'),
+        h(Btn,{variant:"outline",onClick:function(){go("/buyers");}},'👥 View Buyers'),
+        h(Btn,{variant:"outline",onClick:function(){go("/po");}},'🧾 Assign POs'),
+        h(Btn,{variant:"outline",onClick:function(){go("/export");}},'📧 Export')
+      )
+    ),
+    h('div',{className:"grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3"},
+      h(StatCard,{label:"Total SKUs",value:fmtNum(totalSku),icon:'📦'}),
+      h(StatCard,{label:"Extended Cost",value:fmtUSDRound(totalCost),icon:'💰'}),
+      h(StatCard,{label:"Unique Vendors",value:uniqVendors,icon:'🏭'}),
+      h(StatCard,{label:"Unique Buyers",value:uniqBuyers,icon:'👥'}),
+      h(StatCard,{label:"Needs PO",value:needsPo,tone:"red",sub:"Action needed",icon:'⚠️'}),
+      h(StatCard,{label:"PO Assigned / Sent",value:poAssigned+sentToVendor,tone:"green",sub:sentToVendor+" sent to vendor",icon:'✅'})
+    ),
+    h('div',{className:"grid grid-cols-1 lg:grid-cols-2 gap-4"},
+      h(Card,{title:"Cost by Vendor (Top 10)"},h(BarChartSVG,{data:byVendor,color:"#4f46e5"})),
+      h(Card,{title:"Cost by Buyer"},h(BarChartSVG,{data:byBuyer,color:"#ef4444"})),
+      h(Card,{title:"Inventory by Category"},h(PieChartSVG,{data:byCat})),
+      h(Card,{title:"Inventory Aging (days since last sold)"},h(LineChartSVG,{data:aging,color:"#10b981"}))
+    ),
+    h(Card,{title:"Recent Uploads"},
+      ctx.uploads.length===0 ?
+        h('div',{className:"text-sm text-slate-500 dark:text-slate-400 py-4"},'No uploads yet.') :
+        h('div',{className:"overflow-x-auto"},
+          h('table',{className:"w-full text-sm"},
+            h('thead',{className:"text-left text-xs uppercase text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-700"},
+              h('tr',null,
+                h('th',{className:"py-2 pr-3"},'File'),
+                h('th',{className:"py-2 pr-3"},'Format'),
+                h('th',{className:"py-2 pr-3"},'Action'),
+                h('th',{className:"py-2 pr-3"},'Records'),
+                h('th',{className:"py-2 pr-3"},'Uploaded By'),
+                h('th',{className:"py-2 pr-3"},'When')
+              )
+            ),
+            h('tbody',null,
+              ctx.uploads.slice(-5).reverse().map(function(u){
+                return h('tr',{key:u.id,className:"border-b border-slate-100 dark:border-slate-700/50"},
+                  h('td',{className:"py-2 pr-3"},u.filename),
+                  h('td',{className:"py-2 pr-3"},h('span',{className:"px-2 py-0.5 rounded bg-brand-100 text-brand-700 dark:bg-brand-900/40 dark:text-brand-200 text-[10px] font-semibold"},u.format||"CSV")),
+                  h('td',{className:"py-2 pr-3"},h('span',{className:"px-2 py-0.5 rounded bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 text-[10px] font-medium"},u.action||"Append")),
+                  h('td',{className:"py-2 pr-3"},u.records_count),
+                  h('td',{className:"py-2 pr-3"},u.uploaded_by),
+                  h('td',{className:"py-2 pr-3"},new Date(u.uploaded_at).toLocaleString())
+                );
+              })
+            )
+          )
+        )
+    )
+  );
+}
+
+function UploadPage(){
+  var ctx=useApp();
+  var pv=useState(null); var preview=pv[0],setPreview=pv[1];
+  var fn=useState(""); var filename=fn[0],setFilename=fn[1];
+  var cf=useState(null); var confirmed=cf[0],setConfirmed=cf[1];
+  var dg=useState(false); var dragOver=dg[0],setDragOver=dg[1];
+  var bs=useState(false); var busy=bs[0],setBusy=bs[1];
+  var inputRef=useRef(null);
+  function validateAndCheck(rows, fieldsRaw){
+    var fieldKeys = fieldsRaw.map(function(f){return HEADER_MAP[String(f).trim().toLowerCase()];}).filter(Boolean);
+    var missingCols = REQUIRED_COLS.filter(function(c){return fieldKeys.indexOf(c)<0;});
+    var hasPreferred = fieldKeys.indexOf("vendor_name")>=0;
+    var hasItemVendor = fieldKeys.indexOf("vendor_item_number")>=0;
+    var vendorFallbackUsed = false;
+    if(!hasPreferred && hasItemVendor){
+      rows.forEach(function(r){if(!r.vendor_name && r.vendor_item_number) r.vendor_name = r.vendor_item_number;});
+      vendorFallbackUsed = true;
+    }
+    return {missingCols:missingCols, vendorFallbackUsed:vendorFallbackUsed};
+  }
+  function handleCSVorTSV(file,isTSV){
+    window.Papa.parse(file,{header:true,skipEmptyLines:true,delimiter:isTSV?"\t":"",
+      complete:function(res){
+        var fields=(res.meta.fields||[]).slice();
+        var stripped=[];
+        fields=fields.filter(function(f){var k=String(f||"").trim().toLowerCase(); if(STRIP_COLS.indexOf(k)>=0){stripped.push(f); return false;} return true;});
+        var rows=res.data.map(function(r){return normalizeRow(r,fields);}).filter(function(r){return r.sku||r.description;});
+        var check = validateAndCheck(rows, fields);
+        setPreview({rows:rows,fields:fields,stripped:stripped,raw:res.data.length,format:isTSV?"TSV":"CSV",missingCols:check.missingCols,vendorFallbackUsed:check.vendorFallbackUsed});
+        setBusy(false);
+      },
+      error:function(err){ctx.pushToast({type:"error",message:"Parse error: "+err.message}); setBusy(false);}
+    });
+  }
+  function handleExcel(file){
+    var reader=new FileReader();
+    reader.onload=function(ev){
+      try{
+        var data=new Uint8Array(ev.target.result);
+        var wb=XLSX.read(data,{type:'array',cellDates:true});
+        var sheetNames=wb.SheetNames;
+        var ws=wb.Sheets[sheetNames[0]];
+        var aoa=XLSX.utils.sheet_to_json(ws,{header:1,defval:""});
+        if(aoa.length===0){ctx.pushToast({type:"error",message:"Empty workbook"}); setBusy(false); return;}
+        var rawHeaders=aoa[0].map(function(hd){return String(hd==null?"":hd);});
+        var stripped=[]; var keepIdx=[];
+        rawHeaders.forEach(function(hd,idx){
+          if(STRIP_COLS.indexOf(hd.trim().toLowerCase())>=0) stripped.push(hd);
+          else keepIdx.push(idx);
+        });
+        var fields=keepIdx.map(function(i){return rawHeaders[i];});
+        var dataRows=aoa.slice(1).filter(function(r){return r && r.some(function(c){return c!==""&&c!=null;});});
+        var rows=dataRows.map(function(arr){
+          var obj={};
+          keepIdx.forEach(function(i){obj[rawHeaders[i]]=arr[i];});
+          return normalizeRow(obj,fields);
+        }).filter(function(r){return r.sku||r.description;});
+        var sheetNote=sheetNames.length>1?"Multiple sheets — using first: "+sheetNames[0]:"";
+        var check = validateAndCheck(rows, fields);
+        setPreview({rows:rows,fields:fields,stripped:stripped,raw:dataRows.length,format:"Excel",sheetNote:sheetNote,missingCols:check.missingCols,vendorFallbackUsed:check.vendorFallbackUsed});
+        setBusy(false);
+      }catch(err){ctx.pushToast({type:"error",message:"Excel parse error: "+err.message}); setBusy(false);}
+    };
+    reader.onerror=function(){ctx.pushToast({type:"error",message:"File read failed"}); setBusy(false);};
+    reader.readAsArrayBuffer(file);
+  }
+  function handleJSON(file){
+    var reader=new FileReader();
+    reader.onload=function(ev){
+      try{
+        var parsed=JSON.parse(ev.target.result);
+        if(!Array.isArray(parsed)){
+          if(parsed.rows && Array.isArray(parsed.rows)) parsed=parsed.rows;
+          else if(parsed.data && Array.isArray(parsed.data)) parsed=parsed.data;
+          else if(parsed.inventory && Array.isArray(parsed.inventory)) parsed=parsed.inventory;
+          else {ctx.pushToast({type:"error",message:"JSON must be an array of objects"}); setBusy(false); return;}
+        }
+        if(parsed.length===0){ctx.pushToast({type:"error",message:"JSON array is empty"}); setBusy(false); return;}
+        var allKeys=new Set();
+        parsed.forEach(function(o){if(o&&typeof o==='object') Object.keys(o).forEach(function(k){allKeys.add(k);});});
+        var fields=Array.from(allKeys);
+        var stripped=[];
+        fields=fields.filter(function(f){var k=String(f||"").trim().toLowerCase(); if(STRIP_COLS.indexOf(k)>=0){stripped.push(f); return false;} return true;});
+        var rows=parsed.map(function(r){return normalizeRow(r,fields);}).filter(function(r){return r.sku||r.description;});
+        var check = validateAndCheck(rows, fields);
+        setPreview({rows:rows,fields:fields,stripped:stripped,raw:parsed.length,format:"JSON",missingCols:check.missingCols,vendorFallbackUsed:check.vendorFallbackUsed});
+        setBusy(false);
+      }catch(err){ctx.pushToast({type:"error",message:"JSON parse error: "+err.message}); setBusy(false);}
+    };
+    reader.onerror=function(){ctx.pushToast({type:"error",message:"File read failed"}); setBusy(false);};
+    reader.readAsText(file);
+  }
+  function handleFile(file){
+    setPreview(null); setConfirmed(null);
+    setFilename(file.name); setBusy(true);
+    var ext=(file.name.split('.').pop()||"").toLowerCase();
+    if(ext==="xlsx"||ext==="xls"||ext==="xlsm") return handleExcel(file);
+    if(ext==="json") return handleJSON(file);
+    if(ext==="tsv") return handleCSVorTSV(file,true);
+    return handleCSVorTSV(file,false);
+  }
+  async function doImport(action){
+    if(!preview) return;
+    var newInv = action==='replace' ? preview.rows.slice() : ctx.inventory.concat(preview.rows);
+    ctx.setInventory(newInv);
+    var mergedVendors = ctx.syncVendorsFromInventory(newInv);
+    var rec={id:uid(),filename:filename,uploaded_at:new Date().toISOString(),records_count:preview.rows.length,uploaded_by:ctx.profile.name,format:preview.format,action:action==='replace'?'Replace':'Append'};
+    ctx.setUploads(ctx.uploads.concat([rec]));
+    if(hasSupabaseConfig()){
+      ctx.setCloudStatus && ctx.setCloudStatus("Saving to cloud…");
+      try{
+        if(action==='replace') await dbReplaceInventory(preview.rows);
+        else await dbInsertRows("inventory", preview.rows, CLOUD_INVENTORY_COLS);
+        if(mergedVendors) await dbUpsertRows("vendors", mergedVendors, CLOUD_VENDOR_COLS);
+        await dbSaveUpload(rec);
+        ctx.setCloudStatus && ctx.setCloudStatus("Cloud synced");
+        ctx.pushToast({type:"success",message:"Cloud sync complete"});
+      } catch(e){
+        console.error("Cloud import failed", e);
+        ctx.setCloudStatus && ctx.setCloudStatus("Cloud error: "+(e.message||"import failed"));
+        ctx.pushToast({type:"warning",message:"Imported locally, but cloud save failed. Check Supabase table/policies."});
+      }
+    }
+    setConfirmed({count:preview.rows.length,filename:filename,format:preview.format,action:action});
+    setPreview(null);
+    ctx.pushToast({type:"success",message:(action==='replace'?'Replaced inventory with ':'Appended ')+preview.rows.length+' records from '+preview.format});
+  }
+  if(confirmed){
+    return h('div',{className:"max-w-2xl mx-auto"},h(Card,null,
+      h('div',{className:"text-center py-8"},
+        h('div',{className:"text-5xl"},'✅'),
+        h('h2',{className:"text-xl font-bold mt-3"},'Import complete'),
+        h('p',{className:"text-slate-500 dark:text-slate-400 mt-1"},(confirmed.action==='replace'?'Replaced inventory with ':'Appended '),h('b',null,confirmed.count),' records from ',h('b',null,confirmed.filename),' (',confirmed.format,').'),
+        h('div',{className:"flex gap-2 justify-center mt-5 flex-wrap"},
+          h(Btn,{onClick:function(){go("/dashboard");}},'Go to Dashboard'),
+          h(Btn,{variant:"red",onClick:function(){go("/po");}},'Assign POs now'),
+          h(Btn,{variant:"outline",onClick:function(){setConfirmed(null); setFilename("");}},'Upload another')
+        )
+      )
+    ));
+  }
+  var dropCls="border-2 border-dashed rounded-xl p-10 text-center cursor-pointer transition "+(dragOver?"border-brand-500 bg-brand-50 dark:bg-brand-900/20":"border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 hover:border-brand-400");
+  var hasInv = ctx.inventory.length>0;
+  var pvBadges = preview ? [
+    h('span',{key:"f",className:"px-2 py-1 rounded bg-brand-100 text-brand-700 dark:bg-brand-900/40 dark:text-brand-200 text-xs font-semibold"},preview.format),
+    preview.stripped.length>0?h('span',{key:"s",className:"px-2 py-1 rounded bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300 text-xs font-medium"},'✓ Removed: '+preview.stripped.join(", ")):null,
+    h('span',{key:"p",className:"px-2 py-1 rounded bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs"},'Parsed rows: '+preview.raw),
+    h('span',{key:"v",className:"px-2 py-1 rounded bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs"},'Valid: '+preview.rows.length),
+    preview.sheetNote?h('span',{key:"sh",className:"px-2 py-1 rounded bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300 text-xs"},preview.sheetNote):null
+  ] : null;
+  return h('div',{className:"space-y-5"},
+    h('div',null,
+      h('h1',{className:"text-2xl font-bold"},'Upload Inventory File'),
+      h('p',{className:"text-sm text-slate-500 dark:text-slate-400"},'The ',h('b',null,'Item Sales Rep'),' column is automatically removed per requirements. Supports CSV, Excel, TSV, and JSON.')
+    ),
+    hasInv?h(WarningBanner,{tone:"amber",icon:'ℹ️',title:"You already have "+ctx.inventory.length+" SKUs loaded.",desc:"To avoid duplicates, the default action below is to Replace your current inventory with this upload. You can also Append if you want to combine datasets."}):null,
+    h('div',{onDragOver:function(e){e.preventDefault(); setDragOver(true);},onDragLeave:function(){setDragOver(false);},onDrop:function(e){e.preventDefault(); setDragOver(false); var f=e.dataTransfer.files[0]; if(f) handleFile(f);},onClick:function(){inputRef.current.click();},className:dropCls},
+      h('div',{className:"text-5xl"},'📂'),
+      h('div',{className:"mt-2 font-semibold"},busy?'Reading file…':'Drag & drop CSV, Excel, TSV, or JSON here'),
+      h('div',{className:"text-sm text-slate-500 dark:text-slate-400"},'or click to browse'),
+      h('div',{className:"flex justify-center gap-2 mt-4 text-xs text-slate-500 dark:text-slate-400 flex-wrap"},
+        h('span',{className:"flex items-center gap-1 px-2 py-1 rounded-md bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200"},'📊 .xlsx / .xls'),
+        h('span',{className:"flex items-center gap-1 px-2 py-1 rounded-md bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200"},'📄 .csv'),
+        h('span',{className:"flex items-center gap-1 px-2 py-1 rounded-md bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200"},'🗂️ .tsv'),
+        h('span',{className:"flex items-center gap-1 px-2 py-1 rounded-md bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200"},'🧾 .json')
+      ),
+      h('div',{className:"text-[11px] text-slate-500 dark:text-slate-400 mt-3 max-w-md mx-auto"},'💡 ',h('b',null,"Can't see your file?"),' Click the dropdown in the bottom-right of the file picker and choose ',h('b',null,'All files (*.*)'),'.'),
+      h('input',{ref:inputRef,type:"file",accept:"*/*",className:"hidden",onChange:function(e){var f=e.target.files[0]; if(f) handleFile(f);}})
+    ),
+    preview?h(Card,{title:"Preview: "+filename,actions:h(Fragment,null,
+      h(Btn,{variant:"red",onClick:function(){doImport('replace');}},'🔄 Replace current inventory ('+preview.rows.length+')'),
+      h(Btn,{variant:"outline",onClick:function(){doImport('append');}},'➕ Append to existing')
+    )},
+      h('div',{className:"flex flex-wrap gap-2 mb-3"},pvBadges),
+      preview.missingCols.length>0?h('div',{className:"mb-3"},h(WarningBanner,{tone:"red",icon:'⚠️',title:"Missing required columns",desc:"This file is missing: "+preview.missingCols.join(", ")+". Imported rows may have incorrect totals or fail to break out by buyer/vendor."})):null,
+      preview.vendorFallbackUsed?h('div',{className:"mb-3"},h(WarningBanner,{tone:"amber",icon:'⚠️',title:"Vendor breakout may be inaccurate",desc:"Preferred Vendor column was missing, so Item Vendor was used as the vendor name. Item Vendor is normally a vendor product code, not the vendor itself. Consider re-uploading with the Preferred Vendor column included."})):null,
+      h('div',{className:"text-xs font-semibold text-slate-700 dark:text-slate-300 mb-2"},'Normalized preview (first 20 rows):'),
+      h('div',{className:"overflow-x-auto border border-slate-200 dark:border-slate-700 rounded-lg max-h-96"},
+        h('table',{className:"w-full text-xs"},
+          h('thead',{className:"bg-slate-100 dark:bg-slate-700 sticky top-0"},
+            h('tr',null,
+              h('th',{className:"px-2 py-1.5 text-left whitespace-nowrap"},'SKU'),
+              h('th',{className:"px-2 py-1.5 text-left whitespace-nowrap"},'Internal ID'),
+              h('th',{className:"px-2 py-1.5 text-left whitespace-nowrap"},'Description'),
+              h('th',{className:"px-2 py-1.5 text-left whitespace-nowrap"},'Buyer'),
+              h('th',{className:"px-2 py-1.5 text-left whitespace-nowrap"},'Vendor'),
+              h('th',{className:"px-2 py-1.5 text-left whitespace-nowrap"},'Vendor Item #'),
+              h('th',{className:"px-2 py-1.5 text-right whitespace-nowrap"},'Qty'),
+              h('th',{className:"px-2 py-1.5 text-right whitespace-nowrap"},'Unit Cost'),
+              h('th',{className:"px-2 py-1.5 text-right whitespace-nowrap"},'Ext Cost'),
+              h('th',{className:"px-2 py-1.5 text-left whitespace-nowrap"},'Category')
+            )
+          ),
+          h('tbody',null,
+            preview.rows.slice(0,20).map(function(r,i){
+              return h('tr',{key:i,className:"border-t border-slate-200 dark:border-slate-700/50"},
+                h('td',{className:"px-2 py-1 font-mono whitespace-nowrap"},r.sku||"—"),
+                h('td',{className:"px-2 py-1 font-mono text-slate-500 whitespace-nowrap"},r.internal_id||"—"),
+                h('td',{className:"px-2 py-1"},r.description||"—"),
+                h('td',{className:"px-2 py-1 whitespace-nowrap"},r.buyer_name||h('span',{className:"text-rose-600"},"missing")),
+                h('td',{className:"px-2 py-1 whitespace-nowrap"},r.vendor_name||h('span',{className:"text-rose-600"},"missing")),
+                h('td',{className:"px-2 py-1 font-mono text-slate-500 whitespace-nowrap"},r.vendor_item_number||"—"),
+                h('td',{className:"px-2 py-1 text-right tabular-nums"},r.total_inventory_on_hand),
+                h('td',{className:"px-2 py-1 text-right tabular-nums"},fmtUSD(r.preferred_vendor_price)),
+                h('td',{className:"px-2 py-1 text-right tabular-nums"},fmtUSD(r.extended_cost)),
+                h('td',{className:"px-2 py-1 whitespace-nowrap"},r.product_category||"—")
+              );
+            })
+          )
+        )
+      )
+    ):null
+  );
+}
+
+function BuyersPage(){
+  var ctx=useApp();
+  var qs=useState(""); var q=qs[0],setQ=qs[1];
+  var buyers=useMemo(function(){
+    var g=groupBy(ctx.inventory,'buyer_name');
+    return Object.keys(g).filter(function(k){return k && k!=="—";}).map(function(name){
+      var rows=g[name];
+      return {name:name,count:rows.length,
+        cost:rows.reduce(function(s,r){return s+Number(r.extended_cost||0);},0),
+        needs_po:rows.filter(function(r){return r.po_status==='needs_po'||r.po_status==='partial_po';}).length,
+        po_assigned:rows.filter(function(r){return r.po_status==='po_assigned'||r.po_status==='ready_to_email';}).length,
+        sent:rows.filter(function(r){return r.po_status==='sent_to_vendor';}).length};
+    }).sort(function(a,b){return b.cost-a.cost;});
+  },[ctx.inventory]);
+  var filt=buyers.filter(function(b){return b.name.toLowerCase().indexOf(q.toLowerCase())>=0;});
+  if(ctx.inventory.length===0){
+    return h('div',{className:"space-y-4"},
+      h('div',null,h('h1',{className:"text-2xl font-bold"},'Buyers'),h('p',{className:"text-sm text-slate-500 dark:text-slate-400"},'Dead inventory broken out by buyer.')),
+      h(EmptyState,{title:"No buyers yet",desc:"Upload your inventory file to see buyer breakouts here.",cta:"Upload File",onCta:function(){go("/upload");}})
+    );
+  }
+  return h('div',{className:"space-y-4"},
+    h('div',{className:"flex flex-wrap items-center justify-between gap-2"},
+      h('div',null,h('h1',{className:"text-2xl font-bold"},'Buyers'),h('p',{className:"text-sm text-slate-500 dark:text-slate-400"},'Dead inventory broken out by buyer.')),
+      h('input',{value:q,onChange:function(e){setQ(e.target.value);},placeholder:"Search buyers...",className:"px-3 py-1.5 rounded-md border-2 border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:border-brand-500 focus:ring-2 focus:ring-brand-100 outline-none"})
+    ),
+    filt.length===0?h(EmptyState,{title:"No buyers found",desc:"Try clearing your search."}):
+    h('div',{className:"grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3"},
+      filt.map(function(b){
+        return h('a',{key:b.name,href:"#/buyers/"+encodeURIComponent(b.name),className:"rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-4 hover:border-brand-400 hover:-translate-y-0.5 hover:shadow-card transition"},
+          h('div',{className:"font-semibold text-lg text-slate-800 dark:text-white"},b.name),
+          h('div',{className:"text-xs text-slate-500 dark:text-slate-400 mt-0.5"},b.count+' SKUs'),
+          h('div',{className:"text-xl font-bold mt-2 text-brand-700 dark:text-brand-400 tabular-nums"},fmtUSDRound(b.cost)),
+          h('div',{className:"flex gap-1.5 mt-3 flex-wrap"},
+            b.needs_po>0?h('span',{className:"text-[10px] bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-300 px-2 py-0.5 rounded-full font-medium"},b.needs_po+' needs PO'):null,
+            b.po_assigned>0?h('span',{className:"text-[10px] bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300 px-2 py-0.5 rounded-full font-medium"},b.po_assigned+' assigned'):null,
+            b.sent>0?h('span',{className:"text-[10px] bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300 px-2 py-0.5 rounded-full font-medium"},b.sent+' sent'):null
+          )
+        );
+      })
+    )
+  );
+}
+
+function BuyerDetailPage(props){
+  var ctx=useApp();
+  var name=props.name;
+  var qs=useState(""); var q=qs[0],setQ=qs[1];
+  var cs=useState(""); var cat=cs[0],setCat=cs[1];
+  var vs=useState(""); var ven=vs[0],setVen=vs[1];
+  var ss=useState(""); var stat=ss[0],setStat=ss[1];
+  var rows=ctx.inventory.filter(function(r){return r.buyer_name===name;});
+  var filt=rows.filter(function(r){
+    return (!q||(r.sku+" "+r.description+" "+r.vendor_item_number).toLowerCase().indexOf(q.toLowerCase())>=0) &&
+      (!cat||r.product_category===cat) && (!ven||r.vendor_name===ven) && (!stat||r.po_status===stat);
+  });
+  var grouped=groupBy(filt,'vendor_name');
+  var totalCost=filt.reduce(function(s,r){return s+Number(r.extended_cost||0);},0);
+  var needsPoCount = rows.filter(function(r){return r.po_status==='needs_po'||r.po_status==='partial_po';}).length;
+  var vendorSet=Array.from(new Set(rows.map(function(r){return r.vendor_name;}).filter(Boolean))).sort();
+  var catSet=Array.from(new Set(rows.map(function(r){return r.product_category;}).filter(Boolean))).sort();
+  return h('div',{className:"space-y-4"},
+    h('div',{className:"flex flex-wrap items-start justify-between gap-3"},
+      h('div',null,
+        h('a',{href:"#/buyers",className:"text-sm text-brand-600 hover:text-brand-700 hover:underline"},'← Back to Buyers'),
+        h('h1',{className:"text-2xl font-bold mt-1"},name),
+        h('p',{className:"text-sm text-slate-500 dark:text-slate-400"},rows.length+' SKUs • '+fmtUSDRound(totalCost)+' extended cost')
+      ),
+      h('div',{className:"flex gap-2 flex-wrap"},
+        needsPoCount>0?h(Btn,{variant:"red",onClick:function(){go("/po?buyer="+encodeURIComponent(name));}},'🧾 Assign POs for this buyer ('+needsPoCount+')'):null,
+        h(Btn,{variant:"outline",onClick:function(){go("/export?buyer="+encodeURIComponent(name));}},'📧 Email this buyer’s vendors')
+      )
+    ),
+    h(Card,{title:"Filters"},
+      h('div',{className:"grid grid-cols-1 md:grid-cols-4 gap-2"},
+        h('input',{value:q,onChange:function(e){setQ(e.target.value);},placeholder:"Search SKU, description, vendor item #...",className:"px-3 py-1.5 rounded-md border-2 border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white text-sm"}),
+        h('select',{value:cat,onChange:function(e){setCat(e.target.value);},className:"px-3 py-1.5 rounded-md border-2 border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white text-sm"},
+          h('option',{value:""},'All Categories'),
+          catSet.map(function(c){return h('option',{key:c},c);})
+        ),
+        h('select',{value:ven,onChange:function(e){setVen(e.target.value);},className:"px-3 py-1.5 rounded-md border-2 border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white text-sm"},
+          h('option',{value:""},'All Vendors'),
+          vendorSet.map(function(v){return h('option',{key:v},v);})
+        ),
+        h('select',{value:stat,onChange:function(e){setStat(e.target.value);},className:"px-3 py-1.5 rounded-md border-2 border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white text-sm"},
+          h('option',{value:""},'All Statuses'),
+          h('option',{value:"needs_po"},'Needs PO'),
+          h('option',{value:"partial_po"},'Partial PO'),
+          h('option',{value:"po_assigned"},'PO Assigned'),
+          h('option',{value:"ready_to_email"},'Ready to Email'),
+          h('option',{value:"sent_to_vendor"},'Sent to Vendor')
+        )
+      )
+    ),
+    Object.keys(grouped).length===0?h(EmptyState,{title:"No SKUs match",desc:"Adjust filters."}):
+    Object.keys(grouped).map(function(vname){
+      var items=grouped[vname];
+      var sub=items.reduce(function(s,r){return s+Number(r.extended_cost||0);},0);
+      return h('details',{key:vname,open:true,className:"rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-card"},
+        h('summary',{className:"cursor-pointer px-4 py-3 flex justify-between items-center font-semibold border-b border-slate-100 dark:border-slate-700"},
+          h('span',null,'🏭 '+vname),
+          h('span',{className:"text-sm font-normal text-slate-500 dark:text-slate-400"},items.length+' SKUs • '+fmtUSDRound(sub))
+        ),
+        h('div',{className:"overflow-x-auto"},
+          h('table',{className:"w-full text-sm"},
+            h('thead',{className:"bg-slate-50 dark:bg-slate-700/40 text-xs uppercase text-slate-500"},
+              h('tr',null,
+                h('th',{className:"px-3 py-2 text-left"},'SKU'),
+                h('th',{className:"px-3 py-2 text-left"},'Description'),
+                h('th',{className:"px-3 py-2 text-left"},'Category'),
+                h('th',{className:"px-3 py-2 text-right"},'Qty'),
+                h('th',{className:"px-3 py-2 text-right"},'Cost'),
+                h('th',{className:"px-3 py-2 text-left"},'PO'),
+                h('th',{className:"px-3 py-2 text-left"},'Status')
+              )
+            ),
+            h('tbody',null,
+              items.map(function(r){
+                return h('tr',{key:r.id,className:"border-t border-slate-100 dark:border-slate-700/40"},
+                  h('td',{className:"px-3 py-1.5 font-mono text-xs"},r.sku||r.internal_id),
+                  h('td',{className:"px-3 py-1.5"},r.description),
+                  h('td',{className:"px-3 py-1.5 text-xs"},r.product_category||"—"),
+                  h('td',{className:"px-3 py-1.5 text-right tabular-nums"},r.total_inventory_on_hand),
+                  h('td',{className:"px-3 py-1.5 text-right tabular-nums"},fmtUSD(r.extended_cost)),
+                  h('td',{className:"px-3 py-1.5 text-xs font-mono"},poSummaryDisplay(r)),
+                  h('td',{className:"px-3 py-1.5"},h(Pill,{status:r.po_status}))
+                );
+              })
+            )
+          )
+        )
+      );
+    })
+  );
+}
+
+function VendorsPage(){
+  var ctx=useApp();
+  var qs=useState(""); var q=qs[0],setQ=qs[1];
+  var list=useMemo(function(){
+    var g=groupBy(ctx.inventory,'vendor_name');
+    return Object.keys(g).filter(function(k){return k && k!=="—";}).map(function(name){
+      var rows=g[name];
+      return {name:name,count:rows.length,
+        cost:rows.reduce(function(s,r){return s+Number(r.extended_cost||0);},0),
+        needs_po:rows.filter(function(r){return r.po_status==='needs_po'||r.po_status==='partial_po';}).length,
+        po_assigned:rows.filter(function(r){return r.po_status==='po_assigned';}).length,
+        ready:rows.filter(function(r){return r.po_status==='ready_to_email';}).length,
+        sent:rows.filter(function(r){return r.po_status==='sent_to_vendor';}).length};
+    }).sort(function(a,b){return b.cost-a.cost;});
+  },[ctx.inventory]);
+  var filt=list.filter(function(v){return v.name.toLowerCase().indexOf(q.toLowerCase())>=0;});
+  if(ctx.inventory.length===0){
+    return h('div',{className:"space-y-4"},
+      h('div',null,h('h1',{className:"text-2xl font-bold"},'Vendors'),h('p',{className:"text-sm text-slate-500 dark:text-slate-400"},'Dead inventory broken out by Preferred Vendor.')),
+      h(EmptyState,{title:"No vendors yet",desc:"Upload your inventory file to see vendor breakouts here.",cta:"Upload File",onCta:function(){go("/upload");}})
+    );
+  }
+  return h('div',{className:"space-y-4"},
+    h('div',{className:"flex flex-wrap items-center justify-between gap-2"},
+      h('div',null,h('h1',{className:"text-2xl font-bold"},'Vendors'),h('p',{className:"text-sm text-slate-500 dark:text-slate-400"},'Dead inventory broken out by Preferred Vendor.')),
+      h('input',{value:q,onChange:function(e){setQ(e.target.value);},placeholder:"Search vendors...",className:"px-3 py-1.5 rounded-md border-2 border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:border-brand-500 focus:ring-2 focus:ring-brand-100 outline-none"})
+    ),
+    h('div',{className:"grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3"},
+      filt.map(function(v){
+        return h('a',{key:v.name,href:"#/vendors/"+encodeURIComponent(v.name),className:"rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-4 hover:border-brand-400 hover:-translate-y-0.5 hover:shadow-card transition"},
+          h('div',{className:"font-semibold text-slate-800 dark:text-white"},v.name),
+          h('div',{className:"text-xs text-slate-500 dark:text-slate-400 mt-0.5"},v.count+' SKUs'),
+          h('div',{className:"text-xl font-bold mt-2 text-brand-700 dark:text-brand-400 tabular-nums"},fmtUSDRound(v.cost)),
+          h('div',{className:"flex gap-1.5 mt-3 flex-wrap"},
+            v.needs_po>0?h('span',{className:"text-[10px] bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-300 px-2 py-0.5 rounded-full font-medium"},v.needs_po+' needs PO'):null,
+            (v.po_assigned+v.ready)>0?h('span',{className:"text-[10px] bg-sky-100 text-sky-700 dark:bg-sky-900/40 dark:text-sky-300 px-2 py-0.5 rounded-full font-medium"},(v.po_assigned+v.ready)+' ready'):null,
+            v.sent>0?h('span',{className:"text-[10px] bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300 px-2 py-0.5 rounded-full font-medium"},v.sent+' sent'):null
+          )
+        );
+      })
+    )
+  );
+}
+
+function VendorDetailPage(props){
+  var ctx=useApp();
+  var name=props.name;
+  var ss=useState(""); var stat=ss[0],setStat=ss[1];
+  var rows=ctx.inventory.filter(function(r){return r.vendor_name===name;});
+  var filt=stat?rows.filter(function(r){return r.po_status===stat;}):rows;
+  var grouped=groupBy(filt,'buyer_name');
+  var totalCost=filt.reduce(function(s,r){return s+Number(r.extended_cost||0);},0);
+  var needsPoRows = rows.filter(poNeedsWork);
+  var hasNeedsPo = needsPoRows.length>0;
+  var ven=ctx.vendors.find(function(v){return v.vendor_name===name;});
+  var hasEmail = ven && ven.contact_email && ven.contact_email.trim();
+  var readyToEmail = !hasNeedsPo && hasEmail && rows.length>0;
+  function exportCSV(){
+    if(hasNeedsPo){ctx.pushToast({type:"error",message:"Cannot export vendor-ready: "+needsPoRows.length+" SKU(s) still need PO numbers."}); return;}
+    var data=rows.map(function(r){return {SKU:r.sku,Description:r.description,'PO 1':r.po_1||"",'PO 1 Qty':r.po_1_qty||0,'PO 2':r.po_2||"",'PO 2 Qty':r.po_2_qty||0,'PO 3':r.po_3||"",'PO 3 Qty':r.po_3_qty||0,'Total Qty':r.total_inventory_on_hand,'Extended Cost':r.extended_cost};});
+    var ws=XLSX.utils.json_to_sheet(data); var csv=XLSX.utils.sheet_to_csv(ws);
+    var blob=new Blob([csv],{type:'text/csv'}); var url=URL.createObjectURL(blob);
+    var a=document.createElement('a'); a.href=url; a.download=slug(name)+"-return-request.csv"; a.click(); URL.revokeObjectURL(url);
+    ctx.pushToast({type:'success',message:'Vendor CSV downloaded'});
+  }
+  function exportXLSX(){
+    if(hasNeedsPo){ctx.pushToast({type:"error",message:"Cannot export vendor-ready: "+needsPoRows.length+" SKU(s) still need PO numbers."}); return;}
+    var data=rows.map(function(r){return {SKU:r.sku,Description:r.description,'PO 1':r.po_1||"",'PO 1 Qty':r.po_1_qty||0,'PO 2':r.po_2||"",'PO 2 Qty':r.po_2_qty||0,'PO 3':r.po_3||"",'PO 3 Qty':r.po_3_qty||0,'Total Qty':r.total_inventory_on_hand,'Extended Cost':r.extended_cost};});
+    var ws=XLSX.utils.json_to_sheet(data);
+    var wb=XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb,ws,"Return Request");
+    XLSX.writeFile(wb,slug(name)+"-return-request.xlsx");
+    ctx.pushToast({type:'success',message:'Excel report downloaded'});
+  }
+  return h('div',{className:"space-y-4"},
+    h('div',{className:"flex flex-wrap justify-between gap-3"},
+      h('div',null,
+        h('a',{href:"#/vendors",className:"text-sm text-brand-600 hover:text-brand-700 hover:underline"},'← Back to Vendors'),
+        h('h1',{className:"text-2xl font-bold mt-1"},name),
+        h('p',{className:"text-sm text-slate-500 dark:text-slate-400"},rows.length+' SKUs • '+fmtUSDRound(totalCost)),
+        readyToEmail?h('span',{className:"inline-block mt-2 px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300"},'✓ Ready to email'):null
+      ),
+      h('div',{className:"flex gap-2 items-start flex-wrap"},
+        h('select',{value:stat,onChange:function(e){setStat(e.target.value);},className:"px-3 py-1.5 rounded-md border-2 border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm"},
+          h('option',{value:""},'All Statuses'),
+          h('option',{value:"needs_po"},'Needs PO'),
+          h('option',{value:"partial_po"},'Partial PO'),
+          h('option',{value:"po_assigned"},'PO Assigned'),
+          h('option',{value:"ready_to_email"},'Ready to Email'),
+          h('option',{value:"sent_to_vendor"},'Sent to Vendor')
+        ),
+        h(Btn,{variant:"outline",onClick:exportCSV,disabled:hasNeedsPo},'📄 CSV'),
+        h(Btn,{variant:"red",onClick:exportXLSX,disabled:hasNeedsPo},'📊 Excel'),
+        h(Btn,{variant:"outline",onClick:function(){go("/export?vendor="+encodeURIComponent(name));}},'📧 Email')
+      )
+    ),
+    hasNeedsPo?h(WarningBanner,{tone:"red",icon:'⚠️',title:"This vendor has SKUs without PO numbers.",desc:"Add PO information before emailing/exporting to the vendor. "+needsPoRows.length+" SKU(s) still need a PO.",actions:h(Btn,{variant:"red",onClick:function(){go("/po?vendor="+encodeURIComponent(name)+"&status=needs_po");}},'🧾 Go assign missing POs')}):null,
+    !hasEmail?h(WarningBanner,{tone:"amber",icon:'✉️',title:"Vendor email required",desc:"No contact email saved for "+name+". You won't be able to open this vendor in your email client until a contact email is added.",actions:h(Btn,{variant:"amber",onClick:function(){go("/settings");}},'Edit vendor contacts')}):null,
+    Object.keys(grouped).length===0?h(EmptyState,{title:"No SKUs match",desc:"Adjust the status filter."}):
+    Object.keys(grouped).map(function(bname){
+      var items=grouped[bname];
+      var sub=items.reduce(function(s,r){return s+Number(r.extended_cost||0);},0);
+      return h('details',{key:bname,open:true,className:"rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-card"},
+        h('summary',{className:"cursor-pointer px-4 py-3 flex justify-between font-semibold border-b border-slate-100 dark:border-slate-700"},
+          h('span',null,'👤 '+bname),
+          h('span',{className:"text-sm font-normal text-slate-500 dark:text-slate-400"},items.length+' SKUs • '+fmtUSDRound(sub))
+        ),
+        h('div',{className:"overflow-x-auto"},
+          h('table',{className:"w-full text-sm"},
+            h('thead',{className:"bg-slate-50 dark:bg-slate-700/40 text-xs uppercase text-slate-500"},
+              h('tr',null,
+                h('th',{className:"px-3 py-2 text-left"},'SKU'),
+                h('th',{className:"px-3 py-2 text-left"},'Description'),
+                h('th',{className:"px-3 py-2 text-left"},'Vendor Item #'),
+                h('th',{className:"px-3 py-2 text-right"},'Qty'),
+                h('th',{className:"px-3 py-2 text-right"},'Cost'),
+                h('th',{className:"px-3 py-2 text-left"},'PO'),
+                h('th',{className:"px-3 py-2 text-left"},'Status')
+              )
+            ),
+            h('tbody',null,
+              items.map(function(r){
+                return h('tr',{key:r.id,className:"border-t border-slate-100 dark:border-slate-700/40"},
+                  h('td',{className:"px-3 py-1.5 font-mono text-xs"},r.sku||r.internal_id),
+                  h('td',{className:"px-3 py-1.5"},r.description),
+                  h('td',{className:"px-3 py-1.5 font-mono text-xs text-slate-500"},r.vendor_item_number||"—"),
+                  h('td',{className:"px-3 py-1.5 text-right tabular-nums"},r.total_inventory_on_hand),
+                  h('td',{className:"px-3 py-1.5 text-right tabular-nums"},fmtUSD(r.extended_cost)),
+                  h('td',{className:"px-3 py-1.5 text-xs font-mono"},poSummaryDisplay(r)),
+                  h('td',{className:"px-3 py-1.5"},h(Pill,{status:r.po_status}))
+                );
+              })
+            )
+          )
+        )
+      );
+    })
+  );
+}
+
+function POAssignmentPage(props){
+  var ctx=useApp();
+  var query = props.query || {};
+  var moS=useState(query.status==='needs_po'); var missingOnly=moS[0],setMissingOnly=moS[1];
+  var fvS=useState(query.vendor||""); var fVendor=fvS[0],setFVendor=fvS[1];
+  var fbS=useState(query.buyer||""); var fBuyer=fbS[0],setFBuyer=fbS[1];
+  var fcS=useState(""); var fCat=fcS[0],setFCat=fcS[1];
+  var fsS=useState(query.status||""); var fStatus=fsS[0],setFStatus=fsS[1];
+  var seS=useState(new Set()); var selected=seS[0],setSelected=seS[1];
+  var pgS=useState(0); var page=pgS[0],setPage=pgS[1];
+  var PAGE_SIZE=25;
+  var q=(ctx.searchGlobal||"").toLowerCase();
+  var filt=ctx.inventory.filter(function(r){
+    return (!missingOnly||r.po_status==='needs_po') &&
+      (!fVendor||r.vendor_name===fVendor) &&
+      (!fBuyer||r.buyer_name===fBuyer) &&
+      (!fCat||r.product_category===fCat) &&
+      (!fStatus||r.po_status===fStatus) &&
+      (!q||(r.sku+" "+r.description+" "+r.buyer_name+" "+r.vendor_name+" "+r.vendor_item_number).toLowerCase().indexOf(q)>=0);
+  });
+  var pages=Math.max(1,Math.ceil(filt.length/PAGE_SIZE));
+  var slice=filt.slice(page*PAGE_SIZE,(page+1)*PAGE_SIZE);
+  function updateOne(id,patch){
+    var updatedRow=null;
+    var next = ctx.inventory.map(function(r){
+      if(r.id!==id) return r;
+      var u=Object.assign({},r,patch,{updated_at:new Date().toISOString()});
+      if(patch.po_number!==undefined){ u.po_1=(patch.po_number||"").trim(); }
+      if(patch.po_1!==undefined||patch.po_1_qty!==undefined||patch.po_2!==undefined||patch.po_2_qty!==undefined||patch.po_3!==undefined||patch.po_3_qty!==undefined||patch.po_number!==undefined){
+        u=normalizePoFields(u);
+        if(u.po_status!=='sent_to_vendor' && u.po_status!=='ready_to_email') u.po_status=derivePoStatus(u);
+        u.po_date_assigned=hasAnyPo(u)?new Date().toISOString():null;
+      }
+      updatedRow=u;
+      return u;
+    });
+    ctx.setInventory(next);
+    if(updatedRow) dbUpsertInventoryRows([updatedRow]);
+  }
+  function bulkAssign(){
+    var po=prompt("Enter PO number to assign to "+selected.size+" SKU(s):");
+    if(!po) return;
+    po=po.trim();
+    if(!po) return;
+    var changed=[];
+    var next = ctx.inventory.map(function(r){
+      if(!selected.has(r.id)) return r;
+      var u=Object.assign({},r,{po_1:po,po_1_qty:parseInt2(r.total_inventory_on_hand)||0,po_date_assigned:new Date().toISOString(),updated_at:new Date().toISOString()});
+      u=normalizePoFields(u);
+      if(r.po_status==='sent_to_vendor'||r.po_status==='ready_to_email') u.po_status=r.po_status;
+      changed.push(u); return u;
+    });
+    ctx.setInventory(next);
+    dbUpsertInventoryRows(changed);
+    ctx.pushToast({type:'success',message:'Assigned PO '+po+' to '+selected.size+' SKUs'});
+    setSelected(new Set());
+  }
+  function bulkReady(){
+    var withoutPo = 0;
+    var changed=[];
+    var next = ctx.inventory.map(function(r){
+      if(!selected.has(r.id)) return r;
+      if(poNeedsWork(r)){ withoutPo++; return r; }
+      var u=Object.assign({},r,{po_status:'ready_to_email',updated_at:new Date().toISOString()});
+      changed.push(u); return u;
+    });
+    ctx.setInventory(next);
+    dbUpsertInventoryRows(changed);
+    if(withoutPo>0) ctx.pushToast({type:'warning',message:withoutPo+' selected SKU(s) were missing PO information or had quantity mismatch and were skipped'});
+    else ctx.pushToast({type:'success',message:'Marked '+selected.size+' SKUs as Ready to Email'});
+    setSelected(new Set());
+  }
+  function bulkSend(){
+    var changed=[];
+    var next = ctx.inventory.map(function(r){
+      if(!selected.has(r.id)) return r;
+      var u=Object.assign({},r,{po_status:'sent_to_vendor',updated_at:new Date().toISOString()});
+      changed.push(u); return u;
+    });
+    ctx.setInventory(next);
+    dbUpsertInventoryRows(changed);
+    ctx.pushToast({type:'success',message:'Marked '+selected.size+' SKUs as Sent to Vendor'});
+    setSelected(new Set());
+  }
+  function toggleAll(){
+    var ns=new Set(selected);
+    if(slice.every(function(r){return ns.has(r.id);})){slice.forEach(function(r){ns.delete(r.id);});}
+    else {slice.forEach(function(r){ns.add(r.id);});}
+    setSelected(ns);
+  }
+  function rowBg(s){
+    return s==='needs_po'?'bg-rose-50/60 dark:bg-rose-950/20':
+           s==='partial_po'?'bg-orange-50/70 dark:bg-orange-950/20':
+           s==='po_assigned'?'bg-amber-50/60 dark:bg-amber-950/20':
+           s==='ready_to_email'?'bg-sky-50/60 dark:bg-sky-950/20':
+           s==='sent_to_vendor'?'bg-emerald-50/60 dark:bg-emerald-950/20':'';
+  }
+  if(ctx.inventory.length===0){
+    return h('div',{className:"space-y-4"},
+      h('div',null,h('h1',{className:"text-2xl font-bold"},'PO Assignment'),h('p',{className:"text-sm text-slate-500 dark:text-slate-400"},'Assign Purchase Order numbers per SKU before sending to vendors.')),
+      h(EmptyState,{title:"No inventory yet",desc:"Upload your inventory file first, then come back here to assign POs to each SKU.",cta:"Upload File",onCta:function(){go("/upload");}})
+    );
+  }
+  var vendorOpts=Array.from(new Set(ctx.inventory.map(function(r){return r.vendor_name;}).filter(Boolean))).sort();
+  var buyerOpts=Array.from(new Set(ctx.inventory.map(function(r){return r.buyer_name;}).filter(Boolean))).sort();
+  var catOpts=Array.from(new Set(ctx.inventory.map(function(r){return r.product_category;}).filter(Boolean))).sort();
+  var presetMsg = [];
+  if(query.buyer) presetMsg.push('Buyer: '+query.buyer);
+  if(query.vendor) presetMsg.push('Vendor: '+query.vendor);
+  if(query.status==='needs_po') presetMsg.push('Status: Needs PO');
+  return h('div',{className:"space-y-4"},
+    h('div',null,h('h1',{className:"text-2xl font-bold"},'PO Assignment'),h('p',{className:"text-sm text-slate-500 dark:text-slate-400"},'Assign Purchase Order numbers per SKU before sending to vendors. Changes auto-save.')),
+    presetMsg.length>0?h('div',{className:"text-xs text-brand-700 dark:text-brand-200 bg-brand-50 dark:bg-brand-900/30 border border-brand-200 dark:border-brand-800 rounded-md px-3 py-2"},'Filtered to: '+presetMsg.join(' \u2022 '),' ',h('button',{onClick:function(){setFBuyer("");setFVendor("");setFStatus("");setMissingOnly(false);go("/po");},className:"underline ml-2 text-brand-700 dark:text-brand-200 hover:text-brand-900 dark:hover:text-white font-semibold"},'Clear filters')):null,
+    h(Card,null,
+      h('div',{className:"grid grid-cols-1 md:grid-cols-6 gap-2"},
+        h('select',{value:fVendor,onChange:function(e){setFVendor(e.target.value);},className:"px-3 py-1.5 rounded-md border-2 border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white text-sm"},
+          h('option',{value:""},'All Vendors'),
+          vendorOpts.map(function(v){return h('option',{key:v},v);})
+        ),
+        h('select',{value:fBuyer,onChange:function(e){setFBuyer(e.target.value);},className:"px-3 py-1.5 rounded-md border-2 border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white text-sm"},
+          h('option',{value:""},'All Buyers'),
+          buyerOpts.map(function(v){return h('option',{key:v},v);})
+        ),
+        h('select',{value:fCat,onChange:function(e){setFCat(e.target.value);},className:"px-3 py-1.5 rounded-md border-2 border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white text-sm"},
+          h('option',{value:""},'All Categories'),
+          catOpts.map(function(c){return h('option',{key:c},c);})
+        ),
+        h('select',{value:fStatus,onChange:function(e){setFStatus(e.target.value); setMissingOnly(e.target.value==='needs_po');},className:"px-3 py-1.5 rounded-md border-2 border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white text-sm"},
+          h('option',{value:""},'All Statuses'),
+          h('option',{value:"needs_po"},'Needs PO'),
+          h('option',{value:"partial_po"},'Partial PO'),
+          h('option',{value:"po_assigned"},'PO Assigned'),
+          h('option',{value:"ready_to_email"},'Ready to Email'),
+          h('option',{value:"sent_to_vendor"},'Sent to Vendor')
+        ),
+        h('label',{className:"flex items-center gap-2 text-sm px-2"},
+          h('input',{type:"checkbox",checked:missingOnly,onChange:function(e){setMissingOnly(e.target.checked); if(e.target.checked) setFStatus('needs_po'); else if(fStatus==='needs_po') setFStatus('');}}),
+          ' Needs PO only'
+        ),
+        h('div',{className:"text-sm text-slate-500 dark:text-slate-400 flex items-center justify-end"},filt.length+' of '+ctx.inventory.length+' SKUs')
+      )
+    ),
+    selected.size>0?h('div',{className:"rounded-xl bg-slate-900 text-white px-4 py-2.5 flex items-center justify-between flex-wrap gap-2 shadow-card"},
+      h('span',{className:"text-sm font-medium"},selected.size+' selected'),
+      h('div',{className:"flex gap-2 flex-wrap"},
+        h(Btn,{variant:"red",onClick:bulkAssign},'Assign PO to selected'),
+        h(Btn,{variant:"primary",onClick:bulkReady},'Mark Ready to Email'),
+        h(Btn,{variant:"green",onClick:bulkSend},'Mark Sent to Vendor'),
+        h(Btn,{variant:"outline",className:"!bg-white !text-slate-900 !border-white hover:!bg-slate-100 font-semibold",onClick:function(){setSelected(new Set());}},'Clear')
+      )
+    ):null,
+    h(Card,null,
+      h('div',{className:"overflow-x-auto"},
+        h('table',{className:"w-full text-sm"},
+          h('thead',{className:"bg-slate-100 dark:bg-slate-700 text-xs uppercase"},
+            h('tr',null,
+              h('th',{className:"px-2 py-2"},h('input',{type:"checkbox",checked:slice.length>0 && slice.every(function(r){return selected.has(r.id);}),onChange:toggleAll})),
+              h('th',{className:"px-2 py-2 text-left"},'SKU'),
+              h('th',{className:"px-2 py-2 text-left"},'Internal ID'),
+              h('th',{className:"px-2 py-2 text-left"},'Description'),
+              h('th',{className:"px-2 py-2 text-left"},'Buyer'),
+              h('th',{className:"px-2 py-2 text-left"},'Vendor'),
+              h('th',{className:"px-2 py-2 text-left"},'Vendor Item #'),
+              h('th',{className:"px-2 py-2 text-right"},'Qty'),
+              h('th',{className:"px-2 py-2 text-right"},'Unit Cost'),
+              h('th',{className:"px-2 py-2 text-right"},'Ext Cost'),
+              h('th',{className:"px-2 py-2 text-left"},'PO 1'),
+              h('th',{className:"px-2 py-2 text-right"},'Qty 1'),
+              h('th',{className:"px-2 py-2 text-left"},'PO 2'),
+              h('th',{className:"px-2 py-2 text-right"},'Qty 2'),
+              h('th',{className:"px-2 py-2 text-left"},'PO 3'),
+              h('th',{className:"px-2 py-2 text-right"},'Qty 3'),
+              h('th',{className:"px-2 py-2 text-left"},'Status'),
+              h('th',{className:"px-2 py-2 text-left"},'Notes')
+            )
+          ),
+          h('tbody',null,
+            slice.map(function(r){
+              return h('tr',{key:r.id,className:"border-t border-slate-100 dark:border-slate-700/40 "+rowBg(r.po_status)},
+                h('td',{className:"px-2 py-1"},h('input',{type:"checkbox",checked:selected.has(r.id),onChange:function(e){var ns=new Set(selected); if(e.target.checked) ns.add(r.id); else ns.delete(r.id); setSelected(ns);}})),
+                h('td',{className:"px-2 py-1 font-mono text-xs"},r.sku||r.internal_id),
+                h('td',{className:"px-2 py-1 font-mono text-xs text-slate-500"},r.internal_id||"\u2014"),
+                h('td',{className:"px-2 py-1"},r.description),
+                h('td',{className:"px-2 py-1 text-xs"},r.buyer_name),
+                h('td',{className:"px-2 py-1 text-xs"},r.vendor_name),
+                h('td',{className:"px-2 py-1 text-xs font-mono text-slate-500"},r.vendor_item_number||"\u2014"),
+                h('td',{className:"px-2 py-1 text-right tabular-nums"},r.total_inventory_on_hand),
+                h('td',{className:"px-2 py-1 text-right tabular-nums"},fmtUSD(r.preferred_vendor_price)),
+                h('td',{className:"px-2 py-1 text-right tabular-nums"},fmtUSD(r.extended_cost)),
+                h('td',{className:"px-2 py-1"},h('input',{defaultValue:r.po_1||"",onBlur:function(e){if((e.target.value||"").trim()!==(r.po_1||"").trim()){updateOne(r.id,{po_1:(e.target.value||"").trim()}); ctx.pushToast({type:'success',message:'PO 1 saved'});}},placeholder:"PO 1",className:"w-28 px-2 py-1 rounded border-2 border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white text-xs focus:border-brand-500 focus:ring-2 focus:ring-brand-100 outline-none"})),
+                h('td',{className:"px-2 py-1"},h('input',{type:"number",min:"0",defaultValue:r.po_1_qty||"",onBlur:function(e){updateOne(r.id,{po_1_qty:parseInt2(e.target.value)||0});},placeholder:"Qty",className:"w-20 px-2 py-1 rounded border-2 border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white text-xs text-right"})),
+                h('td',{className:"px-2 py-1"},h('input',{defaultValue:r.po_2||"",onBlur:function(e){if((e.target.value||"").trim()!==(r.po_2||"").trim()){updateOne(r.id,{po_2:(e.target.value||"").trim()}); ctx.pushToast({type:'success',message:'PO 2 saved'});}},placeholder:"PO 2",className:"w-28 px-2 py-1 rounded border-2 border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white text-xs"})),
+                h('td',{className:"px-2 py-1"},h('input',{type:"number",min:"0",defaultValue:r.po_2_qty||"",onBlur:function(e){updateOne(r.id,{po_2_qty:parseInt2(e.target.value)||0});},placeholder:"Qty",className:"w-20 px-2 py-1 rounded border-2 border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white text-xs text-right"})),
+                h('td',{className:"px-2 py-1"},h('input',{defaultValue:r.po_3||"",onBlur:function(e){if((e.target.value||"").trim()!==(r.po_3||"").trim()){updateOne(r.id,{po_3:(e.target.value||"").trim()}); ctx.pushToast({type:'success',message:'PO 3 saved'});}},placeholder:"PO 3",className:"w-28 px-2 py-1 rounded border-2 border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white text-xs"})),
+                h('td',{className:"px-2 py-1"},h('input',{type:"number",min:"0",defaultValue:r.po_3_qty||"",onBlur:function(e){updateOne(r.id,{po_3_qty:parseInt2(e.target.value)||0});},placeholder:"Qty",className:"w-20 px-2 py-1 rounded border-2 border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white text-xs text-right"})),
+                h('td',{className:"px-2 py-1"},h(Pill,{status:r.po_status})),
+                h('td',{className:"px-2 py-1"},h('input',{defaultValue:r.notes||"",onBlur:function(e){if(e.target.value!==(r.notes||"")){updateOne(r.id,{notes:e.target.value});}},placeholder:"...",className:"w-28 px-2 py-1 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white text-xs"}))
+              );
+            })
+          )
+        ),
+        filt.length===0?h(EmptyState,{title:"No SKUs match",desc:"Adjust filters."}):null
+      ),
+      h('div',{className:"flex items-center justify-between mt-3 text-sm"},
+        h('div',{className:"text-slate-500 dark:text-slate-400"},'Page '+(page+1)+' of '+pages),
+        h('div',{className:"flex gap-2"},
+          h(Btn,{variant:"outline",disabled:page===0,onClick:function(){setPage(Math.max(0,page-1));}},'Prev'),
+          h(Btn,{variant:"outline",disabled:page>=pages-1,onClick:function(){setPage(Math.min(pages-1,page+1));}},'Next')
+        )
+      )
+    )
+  );
+}
+
+function ExportPage(props){
+  var ctx=useApp();
+  var query = props.query || {};
+  var vS=useState(query.vendor||""); var vendor=vS[0],setVendor=vS[1];
+  var bS=useState(query.buyer||ctx.profile.name||""); var buyer=bS[0],setBuyer=bS[1];
+  var rows=ctx.inventory.filter(function(r){return r.vendor_name===vendor && (!buyer || r.buyer_name===buyer);});
+  var subtotal=rows.reduce(function(s,r){return s+Number(r.extended_cost||0);},0);
+  var ven=ctx.vendors.find(function(v){return v.vendor_name===vendor;});
+  var pos=Array.from(new Set(rows.map(function(r){return summarizePO(r);}).filter(Boolean)));
+  var poDisplay = pos.length===0 ? "PENDING" : pos.length===1 ? pos[0] : "Multiple POs";
+  var subjTpl = ctx.emailTemplate.subject||"";
+  var subjLine = subjTpl.replace(/\{\{po\}\}/g,poDisplay).replace(/\{\{vendor\}\}/g,vendor).replace(/\{\{user\}\}/g,ctx.profile.name);
+  var bodyText = (ctx.emailTemplate.body||"").replace(/\{\{po\}\}/g,poDisplay).replace(/\{\{vendor\}\}/g,vendor).replace(/\{\{user\}\}/g,ctx.profile.name);
+  var needsPoRows = rows.filter(poNeedsWork);
+  var hasNeedsPo = needsPoRows.length>0;
+  var hasEmail = ven && ven.contact_email && ven.contact_email.trim();
+  var canExport = vendor && rows.length>0 && !hasNeedsPo;
+  function buildTable(){
+    var head=["SKU","Description","PO 1","Qty 1","PO 2","Qty 2","PO 3","Qty 3","Total Qty","Extended Cost"];
+    var data=rows.map(function(r){return [r.sku||r.internal_id,r.description,r.po_1||"",r.po_1_qty||0,r.po_2||"",r.po_2_qty||0,r.po_3||"",r.po_3_qty||0,r.total_inventory_on_hand,fmtUSD(r.extended_cost)];});
+    return {head:head,data:data};
+  }
+  function downloadCSV(){
+    if(!canExport){ctx.pushToast({type:"error",message:"Cannot export: PO numbers missing"}); return;}
+    var t=buildTable();
+    var ws=XLSX.utils.aoa_to_sheet([t.head].concat(t.data));
+    var csv=XLSX.utils.sheet_to_csv(ws);
+    var blob=new Blob([csv],{type:'text/csv'}); var url=URL.createObjectURL(blob);
+    var a=document.createElement('a'); a.href=url; a.download=slug(vendor)+"-return-request.csv"; a.click(); URL.revokeObjectURL(url);
+    ctx.pushToast({type:'success',message:'Vendor CSV downloaded'});
+  }
+  function downloadXLSX(){
+    if(!canExport){ctx.pushToast({type:"error",message:"Cannot export: PO numbers missing"}); return;}
+    var t=buildTable();
+    var ws=XLSX.utils.aoa_to_sheet([t.head].concat(t.data).concat([[],["","","","Subtotal",fmtUSD(subtotal)]]));
+    var wb=XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb,ws,"Return Request");
+    XLSX.writeFile(wb,slug(vendor)+"-return-request.xlsx");
+    ctx.pushToast({type:'success',message:'Vendor Excel downloaded'});
+  }
+  function downloadPDF(){
+    if(!canExport){ctx.pushToast({type:"error",message:"Cannot export: PO numbers missing"}); return;}
+    var jsPDF=window.jspdf.jsPDF;
+    var doc=new jsPDF({orientation:"landscape",unit:"pt",format:"letter"});
+    doc.setFontSize(14); doc.text("Dead Inventory Return Request \u2014 "+vendor,40,40);
+    doc.setFontSize(10); doc.text("From: "+ctx.profile.name+" \u2022 Acme Paper and Supply Co.",40,58);
+    var t=buildTable();
+    var y=90; doc.setFont(undefined,"bold");
+    var colW=[70,210,70,45,70,45,70,45,60,80];
+    var x=40; t.head.forEach(function(hd,i){doc.text(String(hd),x,y); x+=colW[i];});
+    doc.setFont(undefined,"normal"); y+=14;
+    t.data.forEach(function(row){
+      if(y>540){doc.addPage(); y=40;}
+      x=40; row.forEach(function(c,i){var s=String(c).substring(0,i===1?40:25); doc.text(s,x,y); x+=colW[i];});
+      y+=14;
+    });
+    y+=10; doc.setFont(undefined,"bold");
+    doc.text("Subtotal: "+fmtUSD(subtotal),40,y);
+    doc.save(slug(vendor)+"-return-request.pdf");
+    ctx.pushToast({type:'success',message:'PDF downloaded'});
+  }
+  function copyEmail(){
+    if(!canExport){ctx.pushToast({type:"error",message:"Cannot copy: PO numbers missing"}); return;}
+    var t=buildTable();
+    var lines=[subjLine,"",bodyText,"",t.head.join("\t")].concat(t.data.map(function(r){return r.join("\t");})).concat(["","Subtotal: "+fmtUSD(subtotal)]);
+    navigator.clipboard.writeText(lines.join("\n")).then(function(){ctx.pushToast({type:'success',message:'Email-ready format copied'});}).catch(function(){ctx.pushToast({type:'error',message:'Copy failed'});});
+  }
+  function openMail(){
+    if(!canExport){ctx.pushToast({type:"error",message:"Cannot open email: PO numbers missing"}); return;}
+    if(!hasEmail){ctx.pushToast({type:"error",message:"Vendor email required. Add a contact email in Settings."}); return;}
+    var to=ven.contact_email;
+    var body=bodyText+"\n\n"+rows.map(function(r){return (r.sku||r.internal_id)+" - "+r.description+" (PO1: "+(r.po_1||"")+" Qty1: "+(r.po_1_qty||0)+", PO2: "+(r.po_2||"")+" Qty2: "+(r.po_2_qty||0)+", PO3: "+(r.po_3||"")+" Qty3: "+(r.po_3_qty||0)+", Total Qty: "+r.total_inventory_on_hand+")";}).join("\n");
+    window.location.href="mailto:"+encodeURIComponent(to)+"?subject="+encodeURIComponent(subjLine)+"&body="+encodeURIComponent(body);
+  }
+  function exportFollowupCSV(){
+    var pool = vendor ? needsPoRows : ctx.inventory.filter(poNeedsWork);
+    var data = pool.map(function(r){return {SKU:r.sku||r.internal_id,Description:r.description,Buyer:r.buyer_name,Vendor:r.vendor_name,'Vendor Item #':r.vendor_item_number,Qty:r.total_inventory_on_hand,'Ext Cost':r.extended_cost,Notes:r.notes||""};});
+    if(data.length===0){ctx.pushToast({type:'info',message:'No SKUs need PO assignment'}); return;}
+    var ws=XLSX.utils.json_to_sheet(data); var csv=XLSX.utils.sheet_to_csv(ws);
+    var blob=new Blob([csv],{type:'text/csv'}); var url=URL.createObjectURL(blob);
+    var a=document.createElement('a'); a.href=url; a.download="internal-po-followup-"+(vendor?slug(vendor)+"-":"")+new Date().toISOString().slice(0,10)+".csv"; a.click(); URL.revokeObjectURL(url);
+    ctx.pushToast({type:'success',message:'Internal PO follow-up report downloaded'});
+  }
+  if(ctx.inventory.length===0){
+    return h('div',{className:"space-y-4"},
+      h('div',null,h('h1',{className:"text-2xl font-bold"},'Export & Email'),h('p',{className:"text-sm text-slate-500 dark:text-slate-400"},'Generate a vendor-ready return request with embedded PO numbers.')),
+      h(EmptyState,{title:"No inventory yet",desc:"Upload your inventory file, assign PO numbers, then come back to export and email vendors.",cta:"Upload File",onCta:function(){go("/upload");}})
+    );
+  }
+  var buyerList=Array.from(new Set(ctx.inventory.map(function(r){return r.buyer_name;}).filter(Boolean))).sort();
+  var vendorList=Array.from(new Set(ctx.inventory.filter(function(r){return !buyer || r.buyer_name===buyer;}).map(function(r){return r.vendor_name;}).filter(Boolean))).sort();
+  return h('div',{className:"space-y-4"},
+    h('div',null,h('h1',{className:"text-2xl font-bold"},'Export & Email'),h('p',{className:"text-sm text-slate-500 dark:text-slate-400"},'Generate a vendor-ready return request with embedded PO numbers. Exports are blocked if any selected SKU is missing a PO.')),
+    h(Card,{title:"Select Buyer and Vendor"},
+      h('div',{className:"grid grid-cols-1 md:grid-cols-2 gap-3"},
+      h('select',{value:buyer,onChange:function(e){setBuyer(e.target.value); setVendor("");},className:"px-3 py-2 rounded-md border-2 border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white text-sm w-full focus:border-brand-500 focus:ring-2 focus:ring-brand-100 outline-none"},
+        h('option',{value:""},'— All buyers —'),
+        buyerList.map(function(b){return h('option',{key:b},b);})
+      ),
+      h('select',{value:vendor,onChange:function(e){setVendor(e.target.value);},className:"px-3 py-2 rounded-md border-2 border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white text-sm w-full focus:border-brand-500 focus:ring-2 focus:ring-brand-100 outline-none"},
+        h('option',{value:""},'\u2014 Choose a vendor \u2014'),
+        vendorList.map(function(v){return h('option',{key:v},v);})
+      )
+      ),
+      buyer?h('p',{className:"text-xs text-slate-500 dark:text-slate-400 mt-2"},'Buyer owner: '+buyer+'. Email uses the current profile/signature: '+ctx.profile.name+' <'+ctx.profile.email+'>'):null,
+      vendor&&ven?h('p',{className:"text-xs text-slate-500 dark:text-slate-400 mt-2"},'Contact: '+(ven.contact_name||"(no name)")+' <'+(ven.contact_email||"no email saved")+'>'):null
+    ),
+    vendor?h(Fragment,null,
+      hasNeedsPo?h(WarningBanner,{tone:"red",icon:'\u26a0\ufe0f',title:"This vendor has SKUs without PO numbers.",desc:"Add PO information before emailing/exporting to the vendor. "+needsPoRows.length+" of "+rows.length+" SKU(s) still need a PO. Vendor-ready exports are disabled.",actions:h(Btn,{variant:"red",onClick:function(){go("/po?vendor="+encodeURIComponent(vendor)+"&status=needs_po");}},'\U0001F9FE Go assign missing POs')}):null,
+      !hasNeedsPo && !hasEmail?h(WarningBanner,{tone:"amber",icon:'\u2709\ufe0f',title:"Vendor email required",desc:"No contact email saved for "+vendor+". You can still download CSV/Excel/PDF, but \"Open in Email\" is disabled.",actions:h(Btn,{variant:"amber",onClick:function(){go("/settings");}},'Edit vendor contacts')}):null,
+      h(Card,{title:"Return Request: "+vendor,actions:h(Fragment,null,
+        h(Btn,{onClick:downloadCSV,variant:"outline",disabled:!canExport},'\U0001F4C4 CSV'),
+        h(Btn,{onClick:downloadXLSX,variant:"outline",disabled:!canExport},'\U0001F4CA Excel'),
+        h(Btn,{onClick:downloadPDF,variant:"outline",disabled:!canExport},'\U0001F4E5 PDF'),
+        h(Btn,{onClick:copyEmail,variant:"outline",disabled:!canExport},'\U0001F4CB Copy'),
+        h(Btn,{onClick:openMail,variant:"red",disabled:!canExport||!hasEmail},'\u2709\ufe0f Open in Email')
+      )},
+        h('div',{className:"overflow-x-auto"},
+          h('table',{className:"w-full text-sm"},
+            h('thead',{className:"bg-slate-100 dark:bg-slate-700 text-xs uppercase"},
+              h('tr',null,
+                h('th',{className:"px-3 py-2 text-left"},'SKU'),
+                h('th',{className:"px-3 py-2 text-left"},'Description'),
+                h('th',{className:"px-3 py-2 text-right"},'Qty on Hand'),
+                h('th',{className:"px-3 py-2 text-left"},'PO 1'),
+                h('th',{className:"px-3 py-2 text-right"},'Qty 1'),
+                h('th',{className:"px-3 py-2 text-left"},'PO 2'),
+                h('th',{className:"px-3 py-2 text-right"},'Qty 2'),
+                h('th',{className:"px-3 py-2 text-left"},'PO 3'),
+                h('th',{className:"px-3 py-2 text-right"},'Qty 3'),
+                h('th',{className:"px-3 py-2 text-right"},'Extended Cost')
+              )
+            ),
+            h('tbody',null,
+              rows.map(function(r){
+                return h('tr',{key:r.id,className:"border-t border-slate-100 dark:border-slate-700/40"},
+                  h('td',{className:"px-3 py-1.5 font-mono text-xs"},r.sku||r.internal_id),
+                  h('td',{className:"px-3 py-1.5"},r.description),
+                  h('td',{className:"px-3 py-1.5 text-right tabular-nums"},r.total_inventory_on_hand),
+                  h('td',{className:"px-3 py-1.5 text-xs font-mono"},r.po_1||h('span',{className:"text-accent-600 font-semibold"},'needs PO')),
+                  h('td',{className:"px-3 py-1.5 text-right tabular-nums"},r.po_1_qty||0),
+                  h('td',{className:"px-3 py-1.5 text-xs font-mono"},r.po_2||"—"),
+                  h('td',{className:"px-3 py-1.5 text-right tabular-nums"},r.po_2_qty||0),
+                  h('td',{className:"px-3 py-1.5 text-xs font-mono"},r.po_3||"—"),
+                  h('td',{className:"px-3 py-1.5 text-right tabular-nums"},r.po_3_qty||0),
+                  h('td',{className:"px-3 py-1.5 text-right tabular-nums"},fmtUSD(r.extended_cost))
+                );
+              }).concat([
+                h('tr',{key:"sub",className:"border-t-2 border-slate-300 dark:border-slate-600 font-bold bg-slate-50 dark:bg-slate-700/30"},
+                  h('td',{colSpan:9,className:"px-3 py-2 text-right"},'Subtotal'),
+                  h('td',{className:"px-3 py-2 text-right tabular-nums"},fmtUSD(subtotal))
+                )
+              ])
+            )
+          )
+        )
+      ),
+      h(Card,{title:"Email Preview"},
+        h('div',{className:"text-sm space-y-2"},
+          h('div',null,h('span',{className:"font-semibold"},'To:'),' '+(hasEmail?ven.contact_email:h('span',{className:"text-accent-600"},"(no vendor email)"))),
+          h('div',null,h('span',{className:"font-semibold"},'Subject:'),' '+subjLine),
+          h('pre',{className:"bg-slate-50 dark:bg-slate-900 p-3 rounded-md whitespace-pre-wrap font-sans border border-slate-200 dark:border-slate-700"},bodyText)
+        )
+      )
+    ):null,
+    h('details',{className:"rounded-xl bg-white dark:bg-slate-800 border-2 border-amber-300 dark:border-amber-800"},
+      h('summary',{className:"cursor-pointer px-4 py-3 flex justify-between items-center font-semibold"},
+        h('span',null,'\U0001F4CB Internal PO Follow-up Report'),
+        h('span',{className:"text-xs font-normal text-slate-500"},'Internal use only \u2022 not vendor-ready')
+      ),
+      h('div',{className:"p-4 border-t border-amber-200 dark:border-amber-800"},
+        h('p',{className:"text-sm text-slate-600 dark:text-slate-300 mb-3"},'List of SKUs still missing PO numbers. This is internal follow-up data, not a vendor-ready export.'),
+        h(Btn,{variant:"amber",onClick:exportFollowupCSV},'\U0001F4C4 Download Internal PO Follow-up CSV'+(vendor?' for '+vendor:''))
+      )
+    )
+  );
+}
+
+function ReportsPage(){
+  var ctx=useApp();
+  function csvExport(rows,fn){
+    if(rows.length===0){ctx.pushToast({type:'info',message:'No rows to export'}); return;}
+    var ws=XLSX.utils.json_to_sheet(rows); var csv=XLSX.utils.sheet_to_csv(ws);
+    var blob=new Blob([csv],{type:'text/csv'}); var url=URL.createObjectURL(blob);
+    var a=document.createElement('a'); a.href=url; a.download=fn; a.click(); URL.revokeObjectURL(url);
+    ctx.pushToast({type:'success',message:'CSV downloaded'});
+  }
+  function xlsxExport(rows,fn,sheetName){
+    if(rows.length===0){ctx.pushToast({type:'info',message:'No rows to export'}); return;}
+    var ws=XLSX.utils.json_to_sheet(rows);
+    var wb=XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb,ws,sheetName||"Report");
+    XLSX.writeFile(wb,fn);
+    ctx.pushToast({type:'success',message:'Excel downloaded'});
+  }
+  function pdfExport(title,head,rows,fn){
+    if(rows.length===0){ctx.pushToast({type:'info',message:'No rows to export'}); return;}
+    var jsPDF=window.jspdf.jsPDF;
+    var doc=new jsPDF({orientation:"landscape",unit:"pt",format:"letter"});
+    doc.setFontSize(14); doc.text(title,40,40);
+    var y=70; doc.setFontSize(9); doc.setFont(undefined,"bold");
+    var cw=760/head.length;
+    head.forEach(function(hd,i){doc.text(String(hd),40+i*cw,y);});
+    doc.setFont(undefined,"normal"); y+=14;
+    rows.forEach(function(r){if(y>560){doc.addPage(); y=40;} r.forEach(function(c,i){doc.text(String(c).substring(0,30),40+i*cw,y);}); y+=12;});
+    doc.save(fn); ctx.pushToast({type:'success',message:'PDF downloaded'});
+  }
+  if(ctx.inventory.length===0){
+    return h('div',{className:"space-y-4"},
+      h('div',null,h('h1',{className:"text-2xl font-bold"},'Reports'),h('p',{className:"text-sm text-slate-500 dark:text-slate-400"},'Operational reports for executive review.')),
+      h(EmptyState,{title:"No data to report on",desc:"Upload your inventory file to generate reports.",cta:"Upload File",onCta:function(){go("/upload");}})
+    );
+  }
+  var buyerMap=groupBy(ctx.inventory,'buyer_name');
+  var buyerSummary=Object.keys(buyerMap).filter(function(k){return k && k!=="\u2014";}).map(function(n){
+    var rs=buyerMap[n];
+    return {Buyer:n,SKUs:rs.length,'Extended Cost':rs.reduce(function(s,r){return s+Number(r.extended_cost||0);},0),
+      'Needs PO':rs.filter(function(r){return r.po_status==='needs_po'||r.po_status==='partial_po';}).length,
+      'Ready to Email':rs.filter(function(r){return r.po_status==='ready_to_email';}).length,
+      'Sent':rs.filter(function(r){return r.po_status==='sent_to_vendor';}).length};
+  }).sort(function(a,b){return b['Extended Cost']-a['Extended Cost'];});
+  var vendorMap=groupBy(ctx.inventory,'vendor_name');
+  var vendorSummary=Object.keys(vendorMap).filter(function(k){return k && k!=="\u2014";}).map(function(n){
+    var rs=vendorMap[n];
+    return {Vendor:n,SKUs:rs.length,'Extended Cost':rs.reduce(function(s,r){return s+Number(r.extended_cost||0);},0),
+      'Needs PO':rs.filter(function(r){return r.po_status==='needs_po'||r.po_status==='partial_po';}).length,
+      'Ready to Email':rs.filter(function(r){return r.po_status==='ready_to_email';}).length,
+      'Sent':rs.filter(function(r){return r.po_status==='sent_to_vendor';}).length};
+  }).sort(function(a,b){return b['Extended Cost']-a['Extended Cost'];});
+  var followup=ctx.inventory.filter(poNeedsWork).map(function(r){
+    return {SKU:r.sku||r.internal_id,Description:r.description,Buyer:r.buyer_name,Vendor:r.vendor_name,'Vendor Item #':r.vendor_item_number,Qty:r.total_inventory_on_hand,'Extended Cost':r.extended_cost,Notes:r.notes||""};
+  });
+  var vendorReady=Object.keys(vendorMap).filter(function(k){return k && k!=="\u2014";}).map(function(n){
+    var rs=vendorMap[n];
+    var needsPo=rs.filter(poNeedsWork).length;
+    var ven=ctx.vendors.find(function(v){return v.vendor_name===n;});
+    var hasEmail=ven && ven.contact_email && ven.contact_email.trim();
+    var ready = needsPo===0 && hasEmail && rs.length>0;
+    return {Vendor:n,SKUs:rs.length,'Extended Cost':rs.reduce(function(s,r){return s+Number(r.extended_cost||0);},0),
+      'Has Email':hasEmail?'Yes':'No','Needs PO':needsPo,'Ready to Email':ready?'YES':'No',Blocker:ready?'':(needsPo>0?'Missing POs ('+needsPo+')':!hasEmail?'No vendor email':'')};
+  }).sort(function(a,b){return b['Extended Cost']-a['Extended Cost'];});
+  var topCost=ctx.inventory.slice().sort(function(a,b){return Number(b.extended_cost||0)-Number(a.extended_cost||0);}).slice(0,20).map(function(r){
+    return {SKU:r.sku||r.internal_id,Description:r.description,Buyer:r.buyer_name,Vendor:r.vendor_name,Qty:r.total_inventory_on_hand,'Unit Cost':r.preferred_vendor_price,'Extended Cost':r.extended_cost,'PO Status':r.po_status};
+  });
+  function Section(props){
+    return h(Card,{title:props.title,actions:h(Fragment,null,
+      h(Btn,{variant:"outline",onClick:function(){csvExport(props.csvRows,props.fn+".csv");}},'\U0001F4C4 CSV'),
+      h(Btn,{variant:"outline",onClick:function(){xlsxExport(props.csvRows,props.fn+".xlsx",props.sheet||props.title);}},'\U0001F4CA Excel'),
+      h(Btn,{variant:"outline",onClick:function(){pdfExport(props.title,props.head,props.rows,props.fn+".pdf");}},'\U0001F4E5 PDF')
+    )},
+      props.note?h('p',{className:"text-xs text-slate-500 dark:text-slate-400 mb-2"},props.note):null,
+      h('div',{className:"overflow-x-auto"},
+        h('table',{className:"w-full text-sm"},
+          h('thead',{className:"bg-slate-100 dark:bg-slate-700 text-xs uppercase"},
+            h('tr',null,props.head.map(function(hd){return h('th',{key:hd,className:"px-3 py-2 text-left"},hd);}))
+          ),
+          h('tbody',null,
+            props.rows.length===0?h('tr',null,h('td',{colSpan:props.head.length,className:"px-3 py-4 text-center text-slate-400"},'No rows')):
+            props.rows.slice(0,50).map(function(r,i){
+              return h('tr',{key:i,className:"border-t border-slate-100 dark:border-slate-700/40"},
+                r.map(function(c,j){return h('td',{key:j,className:"px-3 py-1.5"},c);})
+              );
+            })
+          )
+        )
+      )
+    );
+  }
+  return h('div',{className:"space-y-5"},
+    h('div',null,h('h1',{className:"text-2xl font-bold"},'Reports'),h('p',{className:"text-sm text-slate-500 dark:text-slate-400"},'Operational reports for executive review and vendor follow-up. All vendor breakouts use the Preferred Vendor column.')),
+    h(Section,{title:"A. Buyer Summary",head:["Buyer","SKUs","Extended Cost","Needs PO","Ready to Email","Sent"],
+      rows:buyerSummary.map(function(r){return [r.Buyer,r.SKUs,fmtUSDRound(r['Extended Cost']),r['Needs PO'],r['Ready to Email'],r['Sent']];}),
+      csvRows:buyerSummary,fn:"buyer-summary",sheet:"Buyer Summary"}),
+    h(Section,{title:"B. Vendor Summary",head:["Vendor","SKUs","Extended Cost","Needs PO","Ready to Email","Sent"],
+      rows:vendorSummary.map(function(r){return [r.Vendor,r.SKUs,fmtUSDRound(r['Extended Cost']),r['Needs PO'],r['Ready to Email'],r['Sent']];}),
+      csvRows:vendorSummary,fn:"vendor-summary",sheet:"Vendor Summary"}),
+    h(Section,{title:"C. PO Follow-up Report",
+      note:"Internal report \u2014 SKUs that still need PO numbers assigned. Not vendor-ready.",
+      head:["SKU","Description","Buyer","Vendor","Vendor Item #","Qty","Extended Cost"],
+      rows:followup.map(function(r){return [r.SKU,r.Description,r.Buyer,r.Vendor,r['Vendor Item #'],r.Qty,fmtUSD(r['Extended Cost'])];}),
+      csvRows:followup,fn:"internal-po-followup",sheet:"PO Follow-up"}),
+    h(Section,{title:"D. Vendor-Ready Export Status",
+      note:"Shows which vendors are ready to receive return-request emails and which are blocked.",
+      head:["Vendor","SKUs","Extended Cost","Has Email","Needs PO","Ready to Email","Blocker"],
+      rows:vendorReady.map(function(r){return [r.Vendor,r.SKUs,fmtUSDRound(r['Extended Cost']),r['Has Email'],r['Needs PO'],r['Ready to Email'],r.Blocker];}),
+      csvRows:vendorReady,fn:"vendor-ready-status",sheet:"Vendor Ready"}),
+    h(Section,{title:"E. Highest Extended Cost SKUs (Top 20)",
+      head:["SKU","Description","Buyer","Vendor","Qty","Unit Cost","Extended Cost","Status"],
+      rows:topCost.map(function(r){return [r.SKU,r.Description,r.Buyer,r.Vendor,r.Qty,fmtUSD(r['Unit Cost']),fmtUSD(r['Extended Cost']),r['PO Status']];}),
+      csvRows:topCost,fn:"top-cost-skus",sheet:"Top Cost"})
+  );
+}
+
+function SettingsPage(){
+  var ctx=useApp();
+  var inventoryVendorNames = Array.from(new Set(ctx.inventory.map(function(r){return r.vendor_name;}).filter(Boolean))).sort();
+  var allVendorNames = Array.from(new Set(inventoryVendorNames.concat(ctx.vendors.map(function(v){return v.vendor_name;})))).filter(Boolean).sort();
+  function getOrCreate(name){
+    var existing = ctx.vendors.find(function(v){return v.vendor_name===name;});
+    if(existing) return existing;
+    return {id:uid(),vendor_name:name,contact_name:"",contact_email:"",phone:""};
+  }
+  function updateVendor(name, patch){
+    var existing = ctx.vendors.find(function(v){return v.vendor_name===name;});
+    if(existing){
+      ctx.setVendors(ctx.vendors.map(function(v){return v.vendor_name===name?Object.assign({},v,patch):v;}));
+    } else {
+      ctx.setVendors(ctx.vendors.concat([Object.assign({id:uid(),vendor_name:name,contact_name:"",contact_email:"",phone:""},patch)]));
+    }
+  }
+  return h('div',{className:"space-y-5"},
+    h('div',null,h('h1',{className:"text-2xl font-bold"},'Settings'),h('p',{className:"text-sm text-slate-500 dark:text-slate-400"},'Configure profile, branding, templates, and vendor contacts.')),
+    h(Card,{title:"Cloud Sync (Supabase)"},
+      h('div',{className:"flex items-center gap-2 mb-3 flex-wrap"},
+        h('span',{className:"px-2 py-0.5 rounded-full text-xs font-medium bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-200"},ctx.cloudStatus||'Local mode'),
+        h('span',{className:"text-xs text-slate-600 dark:text-slate-300"},'Cloud sync is active when valid Supabase credentials are saved. Refresh/reopen after saving credentials to auto-load Supabase data.')
+      ),
+      h(SupabaseConfigBlock,null)
+    ),
+    h(Card,{title:"User Profile"},
+      h('div',{className:"grid grid-cols-1 md:grid-cols-3 gap-3"},
+        h('label',{className:"text-sm"},'Name',h('input',{value:ctx.profile.name,onChange:function(e){ctx.setProfile(Object.assign({},ctx.profile,{name:e.target.value}));},className:"w-full mt-1 px-3 py-1.5 rounded-md border-2 border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white text-sm"})),
+        h('label',{className:"text-sm"},'Email',h('input',{value:ctx.profile.email,onChange:function(e){ctx.setProfile(Object.assign({},ctx.profile,{email:e.target.value}));},className:"w-full mt-1 px-3 py-1.5 rounded-md border-2 border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white text-sm"})),
+        h('label',{className:"text-sm"},'Role',h('input',{value:ctx.profile.role,onChange:function(e){ctx.setProfile(Object.assign({},ctx.profile,{role:e.target.value}));},className:"w-full mt-1 px-3 py-1.5 rounded-md border-2 border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white text-sm"}))
+      )
+    ),
+    h(Card,{title:"Email Template",actions:h(Btn,{variant:"outline",onClick:function(){ctx.setEmailTemplate(DEFAULT_EMAIL); ctx.pushToast({type:'info',message:'Template reset to default'});}},'Reset to default')},
+      h('p',{className:"text-xs text-slate-500 dark:text-slate-400 mb-2"},'Available tokens: ',h('code',{className:"px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-slate-100 text-xs"},'{{vendor}}'),', ',h('code',{className:"px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-slate-100 text-xs"},'{{po}}'),', ',h('code',{className:"px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-slate-100 text-xs"},'{{user}}'),'. The {{po}} token shows PO detail across PO 1/2/3, or "Multiple POs" when multiple selected SKUs have different PO combinations.'),
+      h('label',{className:"text-sm font-semibold"},'Subject'),
+      h('input',{value:ctx.emailTemplate.subject,onChange:function(e){ctx.setEmailTemplate(Object.assign({},ctx.emailTemplate,{subject:e.target.value}));},className:"w-full mt-1 mb-3 px-3 py-1.5 rounded-md border-2 border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white text-sm"}),
+      h('label',{className:"text-sm font-semibold"},'Body'),
+      h('textarea',{rows:6,value:ctx.emailTemplate.body,onChange:function(e){ctx.setEmailTemplate(Object.assign({},ctx.emailTemplate,{body:e.target.value}));},className:"w-full mt-1 px-3 py-1.5 rounded-md border-2 border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white text-sm font-mono"})
+    ),
+    h(Card,{title:"Vendor Contacts"},
+      h('p',{className:"text-xs text-slate-500 dark:text-slate-400 mb-3"},'Contacts are auto-created from uploaded data. Fill in email and phone to enable vendor return-request emails. Vendors without an email show a "Vendor email required" warning when exporting.'),
+      allVendorNames.length===0?h('p',{className:"text-sm text-slate-500 dark:text-slate-400"},'Upload your inventory file to see vendors here.'):
+      h('div',{className:"overflow-x-auto"},
+        h('table',{className:"w-full text-sm"},
+          h('thead',{className:"bg-slate-100 dark:bg-slate-700 text-xs uppercase"},
+            h('tr',null,
+              h('th',{className:"px-3 py-2 text-left"},'Vendor (Preferred Vendor name)'),
+              h('th',{className:"px-3 py-2 text-left"},'Contact Name'),
+              h('th',{className:"px-3 py-2 text-left"},'Email'),
+              h('th',{className:"px-3 py-2 text-left"},'Phone'),
+              h('th',{className:"px-3 py-2 text-center"},'SKUs')
+            )
+          ),
+          h('tbody',null,
+            allVendorNames.map(function(name){
+              var v=getOrCreate(name);
+              var skuCount=ctx.inventory.filter(function(r){return r.vendor_name===name;}).length;
+              return h('tr',{key:name,className:"border-t border-slate-100 dark:border-slate-700/40"},
+                h('td',{className:"px-3 py-1.5 font-medium"},name),
+                h('td',{className:"px-3 py-1.5"},h('input',{defaultValue:v.contact_name||"",onBlur:function(e){updateVendor(name,{contact_name:e.target.value});},placeholder:"Contact name",className:"w-full px-2 py-1 rounded border-2 border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white text-xs"})),
+                h('td',{className:"px-3 py-1.5"},h('input',{defaultValue:v.contact_email||"",onBlur:function(e){updateVendor(name,{contact_email:e.target.value});},placeholder:"orders@vendor.com",className:"w-full px-2 py-1 rounded border-2 border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white text-xs"})),
+                h('td',{className:"px-3 py-1.5"},h('input',{defaultValue:v.phone||"",onBlur:function(e){updateVendor(name,{phone:e.target.value});},placeholder:"(555) 555-5555",className:"w-full px-2 py-1 rounded border-2 border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white text-xs"})),
+                h('td',{className:"px-3 py-1.5 text-center text-xs tabular-nums"},skuCount)
+              );
+            })
+          )
+        )
+      )
+    ),
+    h(Card,{title:"Branding"},
+      h('div',{className:"grid grid-cols-1 md:grid-cols-3 gap-3"},
+        h('label',{className:"text-sm"},'Company name',h('input',{value:ctx.branding.company,onChange:function(e){ctx.setBranding(Object.assign({},ctx.branding,{company:e.target.value}));},className:"w-full mt-1 px-3 py-1.5 rounded-md border-2 border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white text-sm"})),
+        h('label',{className:"text-sm"},'Primary color',h('input',{type:"color",value:ctx.branding.primary,onChange:function(e){ctx.setBranding(Object.assign({},ctx.branding,{primary:e.target.value}));},className:"w-full mt-1 h-10 rounded-md border-2 border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700"})),
+        h('label',{className:"text-sm"},'Accent color',h('input',{type:"color",value:ctx.branding.accent,onChange:function(e){ctx.setBranding(Object.assign({},ctx.branding,{accent:e.target.value}));},className:"w-full mt-1 h-10 rounded-md border-2 border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700"}))
+      )
+    ),
+    h(Card,{title:"Reset",className:"border-accent-300 dark:border-accent-700"},
+      h('p',{className:"text-sm text-slate-600 dark:text-slate-400 mb-3"},'Clear all uploaded inventory, vendor contacts, and history. This cannot be undone.'),
+      h(Btn,{variant:"red",onClick:function(){if(confirm("This will permanently delete all data and reload the app. Continue?")){["dim_v3_inventory","dim_v3_vendors","dim_v3_uploads","dim_v3_profile","dim_v3_branding","dim_v3_email_tpl","dim_v3_theme","dim_v3_export_vendor","dim_v3_supabase_config"].forEach(function(k){try{localStorage.removeItem(k);}catch(e){}}); window.location.hash="#/dashboard"; window.location.reload();}}},'\U0001F5D1\ufe0f Reset All Data')
+    )
+  );
+}
+
+try {
+  ReactDOM.createRoot(document.getElementById("root")).render(React.createElement(App));
+} catch(e) {
+  document.getElementById("root").innerHTML = '<div style="padding:40px;font-family:system-ui;max-width:800px;margin:auto"><h1 style="color:#dc2626">App failed to start</h1><p style="color:#475569">Open DevTools (F12) Console for details.</p><pre style="background:#f1f5f9;padding:12px;border-radius:8px;overflow:auto;font-size:12px">'+(e && (e.message+'\n'+e.stack))+'</pre></div>';
+}
+})();
+</script>
+<script>
+(function(){
+  try {
+    var saved = JSON.parse(localStorage.getItem("dim_v3_theme")) || "light";
+    if (saved === "dark") document.documentElement.classList.add("dark");
+  } catch(e){}
+  function setTheme(mode){
+    if (mode === "dark") document.documentElement.classList.add("dark");
+    else document.documentElement.classList.remove("dark");
+    try { localStorage.setItem("dim_v3_theme", JSON.stringify(mode)); } catch(e){}
+    window.dispatchEvent(new HashChangeEvent("hashchange"));
+    refreshBtn();
+  }
+  window.__dimToggleTheme = function(){
+    setTheme(document.documentElement.classList.contains("dark") ? "light" : "dark");
+  };
+  function refreshBtn(){
+    var btn = document.getElementById("dim-theme-btn");
+    if (!btn) return;
+    var isDark = document.documentElement.classList.contains("dark");
+    btn.innerHTML = isDark ? "☀️&nbsp;Light mode" : "🌙&nbsp;Dark mode";
+  }
+  function installBtn(){
+    var orig = document.querySelector('button[title="Toggle theme"]');
+    if (!orig || document.getElementById("dim-theme-btn")) return;
+    var btn = document.createElement("button");
+    btn.id = "dim-theme-btn";
+    btn.type = "button";
+    btn.addEventListener("click", window.__dimToggleTheme);
+    orig.parentNode.insertBefore(btn, orig);
+    orig.style.display = "none";
+    refreshBtn();
+  }
+  var tries = 0;
+  var iv = setInterval(function(){
+    installBtn();
+    tries++;
+    if (tries > 120) clearInterval(iv);
+  }, 500);
+  if (window.MutationObserver) {
+    new MutationObserver(installBtn).observe(document.body, { childList: true, subtree: true });
+  }
+})();
+</script>
+</body></html>
